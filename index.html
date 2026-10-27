@@ -1,1147 +1,1209 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Our Little Photo Universe ☁️</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#dff4ff">
+<title>Our Little Photo Universe ☁️</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
+<style>
+:root {
+  --sky: #dff4ff;
+  --deep: #236785;
+  --ink: #31566a;
+  --paper: #fffdf8;
+}
 
-  <style>
-    :root {
-      --bg: #fff8fc;
-      --pink: #f5b8d2;
-      --pink-dark: #d96b9d;
-      --text: #5c4353;
-      --muted: #a58b9d;
-      --card: #ffffff;
-      --border: #f2dce9;
-      --shadow: 0 8px 25px rgba(166, 106, 145, 0.13);
-    }
+* { box-sizing: border-box; }
 
-    * {
-      box-sizing: border-box;
-    }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Trebuchet MS", system-ui, sans-serif;
+  color: var(--ink);
+}
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 15% 10%, #ffe7f1 0, transparent 30%),
-        radial-gradient(circle at 85% 20%, #e9eaff 0, transparent 32%),
-        var(--bg);
-      font-family: "Trebuchet MS", Arial, sans-serif;
-      overflow: hidden;
-    }
+body {
+  background: linear-gradient(
+    180deg,
+    #dff5ff 0%,
+    #f5fbff 58%,
+    #fff7fb 100%
+  );
+}
 
-    button,
-    input {
-      font: inherit;
-    }
+button, input { font: inherit; }
 
-    button {
-      border: 1px solid var(--border);
-      color: var(--text);
-      background: white;
-      padding: 10px 15px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
+button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 15px;
+  background: white;
+  color: var(--deep);
+  box-shadow: 0 4px 0 #b8dff0;
+  transition: transform .15s, box-shadow .15s;
+}
 
-    button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow);
-    }
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #b8dff0;
+}
 
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
+button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b8dff0;
+}
 
-    button.primary {
-      background: var(--pink-dark);
-      color: white;
-      border-color: var(--pink-dark);
-    }
+button.primary {
+  background: #8dd8f7;
+  color: #164e69;
+}
 
-    button.danger {
-      color: #fff;
-      background: #d94b72;
-      border-color: #d94b72;
-    }
+button.danger {
+  background: #ffe0e8;
+  color: #8c3452;
+}
 
-    .hidden {
-      display: none !important;
-    }
+header {
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  pointer-events: none;
+}
 
-    header {
-      position: fixed;
-      z-index: 20;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-      background: linear-gradient(to bottom, rgba(255, 248, 252, 0.96), rgba(255, 248, 252, 0.72));
-      backdrop-filter: blur(12px);
-    }
+header > * { pointer-events: auto; }
 
-    .brand {
-      min-width: 190px;
-    }
+.brand {
+  background: #ffffffd9;
+  backdrop-filter: blur(10px);
+  border: 1px solid white;
+  border-radius: 22px;
+  padding: 8px 14px;
+  box-shadow: 0 5px 18px #8ecce933;
+  min-width: 0;
+}
 
-    .brand h1 {
-      margin: 0;
-      font-size: clamp(18px, 3vw, 25px);
-      letter-spacing: -0.7px;
-    }
+.brand h1 {
+  font-size: clamp(16px, 3.8vw, 23px);
+  margin: 0;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-    .brand p {
-      margin: 5px 0 0;
-      font-size: 12px;
-      color: var(--muted);
-    }
+.brand p {
+  font-size: 12px;
+  margin: 2px 0 0;
+  color: #6a9ab0;
+}
 
-    .actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 
-    #status {
-      position: fixed;
-      z-index: 30;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: max-content;
-      max-width: calc(100vw - 32px);
-      padding: 10px 16px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.94);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      color: var(--text);
-      font-size: 13px;
-      text-align: center;
-    }
+.actions button { font-size: 13px; }
 
-    #loginPanel {
-      position: fixed;
-      z-index: 50;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      padding: 20px;
-      background: rgba(255, 248, 252, 0.88);
-      backdrop-filter: blur(10px);
-    }
+/* The zoomable universe */
+#stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  isolation: isolate;
+}
 
-    .login-card {
-      width: min(360px, 100%);
-      padding: 28px;
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      background: white;
-      box-shadow: var(--shadow);
-      text-align: center;
-    }
+#stage.dragging { cursor: grabbing; }
 
-    .login-card h2 {
-      margin: 0 0 8px;
-    }
+#world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
 
-    .login-card p {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
-    }
+/* Background decorations */
+.cloud {
+  position: fixed;
+  opacity: .42;
+  pointer-events: none;
+  font-size: 54px;
+  filter: drop-shadow(0 5px 4px #93cbe833);
+  animation: float 8s ease-in-out infinite;
+}
 
-    .login-card input {
-      width: 100%;
-      padding: 12px 14px;
-      margin: 8px 0;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      outline-color: var(--pink-dark);
-    }
+.cloud.c1 { left: 8%; top: 22%; }
+.cloud.c2 { right: 8%; bottom: 16%; animation-delay: -3s; }
+.cloud.c3 { right: 23%; top: 19%; font-size: 34px; animation-delay: -5s; }
 
-    .login-card button {
-      width: 100%;
-      margin-top: 10px;
-    }
+@keyframes float {
+  50% { transform: translateY(-12px); }
+}
 
-    #universe {
-      position: fixed;
-      inset: 95px 0 55px;
-      overflow: hidden;
-      touch-action: none;
-      cursor: grab;
-    }
+/* Photos */
+.card {
+  position: absolute;
+  width: 160px;
+  padding: 8px 8px 10px;
+  background: var(--paper);
+  border-radius: 4px;
+  box-shadow: 0 7px 18px #4d83952b;
+  transform: rotate(var(--rot, 0deg));
+  user-select: none;
+  contain: layout style;
+  will-change: transform, opacity;
+  animation: bloom .9s cubic-bezier(.18,.75,.28,1) both;
+  animation-delay: var(--delay, 0ms);
+}
 
-    #universe.dragging {
-      cursor: grabbing;
-    }
+.card:before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  width: 54px;
+  height: 16px;
+  background: #a9e4f2bb;
+  border-radius: 2px;
+  z-index: 2;
+}
 
-    #world {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 0;
-      height: 0;
-      transform: translate(0, 0) scale(1);
-      transform-origin: center;
-      will-change: transform;
-    }
+/*
+  Each photo begins at the center and travels outward
+  to its assigned position in the photo wall.
+*/
+@keyframes bloom {
+  from {
+    transform:
+      translate(var(--from-x), var(--from-y))
+      scale(.12)
+      rotate(0deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(var(--rot, 0deg));
+    opacity: 1;
+  }
+}
 
-    .card {
-      position: absolute;
-      width: 145px;
-      padding: 7px 7px 10px;
-      border: 1px solid rgba(242, 220, 233, 0.95);
-      border-radius: 13px;
-      background: var(--card);
-      box-shadow: var(--shadow);
-      user-select: none;
-      transform: translate(-50%, -50%);
-      animation: bloom 0.9s cubic-bezier(.16, .8, .25, 1) both;
-      animation-delay: var(--delay, 0ms);
-    }
+.card img {
+  display: block;
+  width: 100%;
+  height: 142px;
+  object-fit: cover;
+  background: #eaf7fc;
+  cursor: zoom-in;
+  -webkit-user-drag: none;
+}
 
-    .card img {
-      display: block;
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
-      border-radius: 8px;
-      background: #fff0f7;
-      pointer-events: none;
-    }
+.card .date {
+  font-size: 11px;
+  color: #7899a8;
+  text-align: center;
+  margin-top: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-    .card-date {
-      display: block;
-      padding-top: 8px;
-      color: var(--muted);
-      font-size: 11px;
-      text-align: center;
-      overflow-wrap: anywhere;
-    }
+.card .card-tools {
+  display: none;
+  gap: 5px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
 
-    .card-controls {
-      display: none;
-      gap: 5px;
-      justify-content: center;
-      flex-wrap: wrap;
-      padding-top: 7px;
-    }
+.card .card-tools button {
+  padding: 5px 8px;
+  font-size: 10px;
+  box-shadow: none;
+  background: #e8f7ff;
+}
 
-    .editing .card-controls {
-      display: flex;
-    }
+.editing .card .card-tools { display: flex; }
 
-    .card-controls button {
-      padding: 5px 8px;
-      font-size: 11px;
-    }
+#empty {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 22px 50px;
+  text-align: center;
+  pointer-events: none;
+}
 
-    @keyframes bloom {
-      from {
-        opacity: 0;
-        transform:
-          translate(
-            calc(-50% + var(--from-x, 0px)),
-            calc(-50% + var(--from-y, 0px))
-          )
-          scale(0.25) rotate(-8deg);
-      }
+.empty-box {
+  max-width: 400px;
+  background: #ffffffc9;
+  border: 1px solid white;
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 10px 40px #8ecce922;
+}
 
-      to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1) rotate(0);
-      }
-    }
+.empty-box .emoji { font-size: 52px; }
+.empty-box h2 { margin: 8px 0; font-size: 24px; }
+.empty-box p { line-height: 1.55; margin: 8px 0; color: #6a92a4; }
 
-    #hint {
-      position: fixed;
-      bottom: 68px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: var(--muted);
-      font-size: 12px;
-      text-align: center;
-      width: calc(100% - 30px);
-      pointer-events: none;
-    }
+#status {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  background: #ffffffdb;
+  backdrop-filter: blur(8px);
+  border: 1px solid white;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12px;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 4px 18px #6faec222;
+  z-index: 12;
+}
 
-    @media (max-width: 650px) {
-      header {
-        padding: 12px;
-        align-items: flex-start;
-      }
+#zoomhint {
+  position: fixed;
+  bottom: 18px;
+  right: 15px;
+  font-size: 11px;
+  color: #6b9aaf;
+  background: #ffffffa8;
+  padding: 7px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+}
 
-      .brand {
-        min-width: 100%;
-      }
+#modal {
+  display: none;
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  background: #17425a77;
+  backdrop-filter: blur(7px);
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
 
-      .actions {
-        gap: 6px;
-      }
+#modal.open { display: flex; }
 
-      .actions button {
-        padding: 8px 11px;
-        font-size: 12px;
-      }
+.dialog {
+  width: min(420px, 100%);
+  background: #fffdfb;
+  border-radius: 25px;
+  padding: 23px;
+  box-shadow: 0 20px 70px #17425a44;
+}
 
-      #universe {
-        inset: 135px 0 55px;
-      }
+.dialog h2 { margin: 0 0 8px; }
 
-      .card {
-        width: 112px;
-        padding: 5px 5px 8px;
-      }
+.dialog p {
+  color: #6a92a4;
+  font-size: 13px;
+  line-height: 1.5;
+}
 
-      .card-date {
-        font-size: 10px;
-      }
-    }
-  </style>
+.dialog label {
+  display: block;
+  font-size: 12px;
+  margin: 13px 0 5px;
+}
+
+.dialog input {
+  width: 100%;
+  border: 1px solid #cbe8f4;
+  border-radius: 12px;
+  padding: 11px;
+  background: #f8fdff;
+  color: var(--ink);
+}
+
+.dialog .row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.dialog .row button { flex: 1; }
+
+.small { font-size: 11px; color: #7d9eac; }
+.hidden { display: none !important; }
+
+#fileInput {
+  position: fixed;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+#viewer {
+  display: none;
+  position: fixed;
+  z-index: 25;
+  inset: 0;
+  background: #102f40e8;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+#viewer.open { display: flex; }
+
+#viewer img {
+  max-width: 95vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 15px 50px #0006;
+}
+
+#viewerClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+/* Mobile layout */
+@media (max-width: 600px) {
+  header {
+    padding: 10px;
+    align-items: flex-start;
+  }
+
+  .brand {
+    max-width: 58vw;
+    padding: 8px 10px;
+  }
+
+  .brand p { display: none; }
+
+  .actions { gap: 6px; }
+  .actions button { padding: 9px 11px; font-size: 12px; }
+
+  .card { width: 145px; }
+  .card img { height: 125px; }
+  #zoomhint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud { animation: none; }
+  .card { animation-duration: .01ms; }
+  button { transition: none; }
+}
+</style>
 </head>
 
 <body>
-  <header>
-    <div class="brand">
-      <h1 id="wallTitle">Our Little Photo Universe ☁️</h1>
-      <p>Every little memory has its own place ✨</p>
-    </div>
-
-    <div class="actions">
-      <button id="loginBtn">♡ Log in</button>
-      <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
-      <button id="deleteAllBtn" class="danger hidden">🗑️ Delete All</button>
-      <button id="titleBtn" class="hidden">✎ Wall title</button>
-      <button id="logoutBtn" class="hidden">Log out</button>
-    </div>
-  </header>
-
-  <div id="loginPanel" class="hidden">
-    <div class="login-card">
-      <h2>Welcome back ♡</h2>
-      <p>Log in to manage your little universe.</p>
-
-      <form id="loginForm">
-        <input
-          id="email"
-          type="email"
-          placeholder="Email address"
-          autocomplete="username"
-          required
-        >
-
-        <input
-          id="password"
-          type="password"
-          placeholder="Password"
-          autocomplete="current-password"
-          required
-        >
-
-        <button type="submit" class="primary">Log in</button>
-        <button type="button" id="cancelLogin">Cancel</button>
-      </form>
-    </div>
+<header>
+  <div class="brand">
+    <h1 id="wallTitle">Our Little Photo Universe ☁️</h1>
+    <p>a tiny place for our favorite memories</p>
   </div>
 
-  <input
-    id="fileInput"
-    type="file"
-    accept="image/*"
-    multiple
-    class="hidden"
-  >
-
-  <main id="universe" aria-label="Photo universe">
-    <div id="world"></div>
-  </main>
-
-  <div id="hint">
-    Drag to explore · Scroll or pinch to zoom · Log in to edit your memories
+  <div class="actions">
+    <button id="loginBtn">☁️ Owner login</button>
+    <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
+    <button id="titleBtn" class="hidden">✎ Wall title</button>
+    <button id="logoutBtn" class="hidden">Log out</button>
   </div>
+</header>
 
-  <div id="status" role="status">Loading your universe… ☁️</div>
+<div id="stage" aria-label="Photo wall canvas">
+  <div id="world"></div>
+</div>
 
-  <script>
-    /* ==========================================
-       SUPABASE CONFIGURATION
-       ========================================== */
+<div class="cloud c1">☁️</div>
+<div class="cloud c2">☁️</div>
+<div class="cloud c3">✦</div>
 
-    const SUPABASE_URL = "https://lekewvjkjwrtcpaizxux.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_yeuYMWyCW_vQi-Sti3WkxQ_esCVzCts";
-    const BUCKET = "photo-wall";
+<div id="empty">
+  <div class="empty-box">
+    <div class="emoji">☁️💗</div>
+    <h2>A little universe of us</h2>
+    <p>Every photo is a tiny memory. The wall will grow as you add more.</p>
+    <p class="small">Log in with an owner account to add photos.</p>
+  </div>
+</div>
 
-    const { createClient } = supabase;
-    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<div id="status">Connecting to our little universe…</div>
+<div id="zoomhint">Drag to wander · Pinch or scroll to zoom</div>
+<input id="fileInput" type="file" accept="image/*" multiple>
 
-    /* ==========================================
-       STATE
-       ========================================== */
+<div id="modal">
+  <div class="dialog">
+    <h2>Owner login ☁️</h2>
+    <p>Sign in to add or manage memories.</p>
 
-    const $ = id => document.getElementById(id);
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
 
-    let session = null;
-    let photos = [];
-    let busy = false;
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="Your password">
 
-    let zoom = 1;
-    let panX = 0;
-    let panY = 0;
+    <div class="row">
+      <button id="cancelModal">Cancel</button>
+      <button id="submitLogin" class="primary">Sign in</button>
+    </div>
 
-    let dragging = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let initialPanX = 0;
-    let initialPanY = 0;
+    <p class="small">Only accounts allowed by your Supabase settings can manage the wall.</p>
+  </div>
+</div>
 
-    let pinchStartDistance = 0;
-    let pinchStartZoom = 1;
+<div id="viewer">
+  <button id="viewerClose">✕ Close</button>
+  <div id="viewerContent"></div>
+</div>
 
-    /* ==========================================
-       GENERAL HELPERS
-       ========================================== */
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
+<script>
+/* Your existing Supabase settings */
+const SUPABASE_URL = "https://lekewvjkjwrtcpaizxux.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_yeuYMWyCW_vQi-Sti3WkxQ_esCVzCts";
+const BUCKET = "photo-wall";
 
-    function status(message) {
-      $("status").textContent = message;
-    }
+const { createClient } = supabase;
 
-    function escapeHTML(value) {
-      return String(value ?? "").replace(/[&<>"']/g, character => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      })[character]);
-    }
+let db = null;
+let session = null;
+let photos = [];
+let scale = 1;
+let tx = window.innerWidth / 2;
+let ty = window.innerHeight / 2;
+let busy = false;
+let transformFrame = 0;
 
-    function getPublicURL(path) {
-      const { data } = db.storage.from(BUCKET).getPublicUrl(path);
-      return data.publicUrl;
-    }
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+const world = $("world");
 
-    function formatDate(value) {
-      if (!value) return "Date unknown";
+function status(message) {
+  $("status").textContent = message;
+}
 
-      const date = new Date(value);
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
 
-      if (Number.isNaN(date.getTime())) {
-        return "Date unknown";
-      }
+/*
+  SPACING-ADJUSTED LAYOUT
 
-      return new Intl.DateTimeFormat(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      }).format(date);
-    }
+  The cards are arranged in staggered rows around the center.
+  Horizontal spacing accounts for card width and rotation.
+  Vertical spacing accounts for the image, date, and card padding.
 
-    async function sha256(file) {
-      const buffer = await file.arrayBuffer();
-      const hash = await crypto.subtle.digest("SHA-256", buffer);
+  The layout is sorted from the center outward so the wall still
+  grows into a compact, rounded cluster.
+*/
+function spherePosition(index) {
+  const horizontalSpacing = 180;
+  const verticalSpacing = 205;
 
-      return Array.from(new Uint8Array(hash))
-        .map(byte => byte.toString(16).padStart(2, "0"))
-        .join("");
-    }
+  // Expand the candidate grid enough to fit the requested index.
+  const extent = Math.max(4, Math.ceil(Math.sqrt(index + 1)) + 2);
+  const candidates = [];
 
-    function safeFilename(name) {
-      return name
-        .normalize("NFKD")
-        .replace(/[^\w.-]+/g, "_")
-        .replace(/^_+|_+$/g, "")
-        .slice(-120) || "photo";
-    }
+  for (let row = -extent; row <= extent; row++) {
+    for (let col = -extent; col <= extent; col++) {
+      const x = col * horizontalSpacing +
+        (Math.abs(row) % 2) * (horizontalSpacing / 2);
 
-    /* ==========================================
-       PHOTO SPHERE LAYOUT
-       ========================================== */
+      const y = row * verticalSpacing;
 
-    function spherePosition(index) {
-      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-      const angle = index * goldenAngle;
-      const radius = 76 * Math.sqrt(index);
-
-      return {
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius
-      };
-    }
-
-    function applyWorldTransform() {
-      $("world").style.transform =
-        `translate(${panX}px, ${panY}px) scale(${zoom})`;
-    }
-
-    function render(animate = true) {
-      const world = $("world");
-      world.innerHTML = "";
-
-      $("universe").classList.toggle("editing", !!session);
-
-      photos.forEach((photo, index) => {
-        const position = spherePosition(index);
-        const card = document.createElement("article");
-
-        card.className = "card";
-        card.style.left = `${position.x}px`;
-        card.style.top = `${position.y}px`;
-
-        if (animate) {
-          card.style.setProperty("--from-x", `${-position.x}px`);
-          card.style.setProperty("--from-y", `${-position.y}px`);
-          card.style.setProperty("--delay", `${Math.min(index * 22, 1100)}ms`);
-        } else {
-          card.style.animation = "none";
-        }
-
-        const image = document.createElement("img");
-        image.src = getPublicURL(photo.storage_path);
-        image.alt = "A memory";
-        image.loading = index < 12 ? "eager" : "lazy";
-        image.draggable = false;
-
-        image.onerror = () => {
-          image.alt = "Image could not be loaded";
-          image.style.opacity = "0.35";
-        };
-
-        const date = document.createElement("span");
-        date.className = "card-date";
-        date.textContent = formatDate(photo.captured_at || photo.uploaded_at);
-
-        card.append(image, date);
-
-        if (session) {
-          const controls = document.createElement("div");
-          controls.className = "card-controls";
-
-          const dateButton = document.createElement("button");
-          dateButton.textContent = "✎ Date";
-          dateButton.title = "Change photo date";
-
-          dateButton.onclick = async event => {
-            event.stopPropagation();
-            await editDate(photo);
-          };
-
-          const deleteButton = document.createElement("button");
-          deleteButton.textContent = "🗑️";
-          deleteButton.title = "Delete this photo";
-
-          deleteButton.onclick = async event => {
-            event.stopPropagation();
-            await deleteOnePhoto(photo);
-          };
-
-          controls.append(dateButton, deleteButton);
-          card.append(controls);
-        }
-
-        world.append(card);
+      candidates.push({
+        x,
+        y,
+        distance: x * x + y * y,
+        row,
+        col
       });
-
-      applyWorldTransform();
     }
+  }
 
-    /* ==========================================
-       LOGIN AND AUTHENTICATION
-       ========================================== */
+  candidates.sort((a, b) =>
+    a.distance - b.distance ||
+    a.y - b.y ||
+    a.x - b.x
+  );
 
-    function updateAuthUI() {
-      $("loginBtn").classList.toggle("hidden", !!session);
-      $("uploadBtn").classList.toggle("hidden", !session);
-      $("deleteAllBtn").classList.toggle("hidden", !session);
-      $("titleBtn").classList.toggle("hidden", !session);
-      $("logoutBtn").classList.toggle("hidden", !session);
-      $("universe").classList.toggle("editing", !!session);
+  const position = candidates[index];
 
-      render(false);
-    }
+  return {
+    x: position.x,
+    y: position.y
+  };
+}
 
-    $("loginBtn").onclick = () => {
-      $("loginPanel").classList.remove("hidden");
-    };
+function applyTransform() {
+  world.style.transform =
+    `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+}
 
-    $("cancelLogin").onclick = () => {
-      $("loginPanel").classList.add("hidden");
-    };
+function scheduleTransform() {
+  if (transformFrame) return;
 
-    $("loginForm").onsubmit = async event => {
-      event.preventDefault();
+  transformFrame = requestAnimationFrame(() => {
+    transformFrame = 0;
+    applyTransform();
+  });
+}
 
-      if (busy) return;
+function updateAuthUI() {
+  $("loginBtn").classList.toggle("hidden", !!session);
+  $("uploadBtn").classList.toggle("hidden", !session);
+  $("titleBtn").classList.toggle("hidden", !session);
+  $("logoutBtn").classList.toggle("hidden", !session);
 
-      busy = true;
-      status("Logging in…");
+  document.body.classList.toggle("editing", !!session);
+}
 
-      try {
-        const { data, error } = await db.auth.signInWithPassword({
-          email: $("email").value.trim(),
-          password: $("password").value
-        });
+function fileUrl(path) {
+  return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
 
-        if (error) throw error;
+/*
+  Display the saved modified date.
+  Do not fall back to uploaded_at, because that is the upload date,
+  not the original file's modified date.
+*/
+function niceDate(value) {
+  if (!value) return "Date unknown";
 
-        session = data.session;
-        $("loginPanel").classList.add("hidden");
-        $("password").value = "";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "Date unknown";
 
-        updateAuthUI();
-        status("Welcome back! ♡");
-      } catch (error) {
-        status("Login failed: " + error.message);
-      } finally {
-        busy = false;
-      }
-    };
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
 
-    $("logoutBtn").onclick = async () => {
-      if (busy) return;
+async function hashFile(file) {
+  const buffer = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest("SHA-256", buffer);
 
-      const { error } = await db.auth.signOut();
+  return Array.from(new Uint8Array(hash))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
 
-      if (error) {
-        status("Couldn't log out: " + error.message);
-        return;
-      }
+/*
+  Render the photos into a staggered, center-outward layout.
+  Cards are spaced to avoid overlapping at the default zoom level.
+*/
+function render(animate = true) {
+  const fragment = document.createDocumentFragment();
 
-      session = null;
-      updateAuthUI();
-      status("Logged out. Thanks for visiting ☁️");
-    };
+  photos.forEach((photo, index) => {
+    const pos = spherePosition(index);
+    const card = document.createElement("article");
 
-    db.auth.onAuthStateChange((_event, newSession) => {
-      session = newSession;
-      updateAuthUI();
+    // Position each card by its top-left corner.
+    card.className = "card";
+    card.style.left = (pos.x - 80) + "px";
+    card.style.top = (pos.y - 90) + "px";
+
+    const rotation = ((index * 17) % 7) - 3;
+    card.style.setProperty("--rot", `${rotation}deg`);
+
+    // Begin at the center and animate outward.
+    card.style.setProperty("--from-x", `${-pos.x}px`);
+    card.style.setProperty("--from-y", `${-pos.y}px`);
+
+    card.style.setProperty(
+      "--delay",
+      animate ? `${Math.min(index * 22, 1100)}ms` : "0ms"
+    );
+
+    card.dataset.id = photo.id;
+
+    const url = fileUrl(photo.storage_path);
+
+    card.innerHTML = `
+      <img
+        src="${esc(url)}"
+        alt="Our memory"
+        loading="lazy"
+        decoding="async"
+        fetchpriority="low"
+        draggable="false"
+      >
+      <div class="date">${esc(niceDate(photo.captured_at))}</div>
+      <div class="card-tools">
+        <button type="button" data-action="view">View</button>
+        <button type="button" data-action="date">Date</button>
+        <button type="button" data-action="delete" class="danger">Remove</button>
+      </div>
+    `;
+
+    card.querySelector("img").addEventListener("click", () => {
+      openViewer(url);
     });
 
-    /* ==========================================
-       LOAD PHOTOS
-       ========================================== */
+    card.addEventListener("click", event => {
+      const button = event.target.closest("button");
+      if (!button) return;
 
-    async function loadPhotos() {
-      status("Loading your memories…");
+      event.stopPropagation();
 
-      const { data, error } = await db
-        .from("photos")
-        .select("*")
-        .order("sort_order", { ascending: true });
+      const action = button.dataset.action;
 
-      if (error) {
-        console.error(error);
-        status("Couldn't load photos: " + error.message);
-        return;
-      }
+      if (action === "view") openViewer(url);
+      if (action === "date") editDate(photo);
+      if (action === "delete") removePhoto(photo);
+    });
 
-      photos = data || [];
-      render(true);
+    fragment.appendChild(card);
+  });
 
-      status(
-        photos.length
-          ? `${photos.length} little memories in your universe ☁️`
-          : "Your universe is empty. Add your first memories ♡"
-      );
-    }
+  world.replaceChildren(fragment);
 
-    /* ==========================================
-       UPLOAD PHOTOS
-       ========================================== */
+  $("empty").style.display = photos.length ? "none" : "flex";
 
-    $("uploadBtn").onclick = () => {
-      if (!session) {
-        status("Please log in first.");
-        return;
-      }
+  applyTransform();
+}
 
-      $("fileInput").click();
-    };
+async function loadPhotos() {
+  if (!db) {
+    status("Supabase is not configured.");
+    return;
+  }
 
-    $("fileInput").onchange = async () => {
-      const files = Array.from($("fileInput").files || []);
-      $("fileInput").value = "";
+  status("Gathering our memories…");
 
-      if (!files.length) return;
+  const { data, error } = await db
+    .from("photos")
+    .select("*")
+    .order("sort_order", { ascending: true });
 
-      if (!session) {
-        status("Please log in before uploading.");
-        return;
-      }
+  if (error) {
+    status("Couldn't load photos: " + error.message);
+    console.error(error);
+    return;
+  }
 
-      if (busy) {
-        status("Please wait for the current task to finish.");
-        return;
-      }
+  photos = data || [];
 
-      busy = true;
-      $("uploadBtn").disabled = true;
-      $("deleteAllBtn").disabled = true;
+  render(true);
 
-      let uploaded = 0;
-      let skipped = 0;
-      let failed = 0;
+  status(
+    photos.length
+      ? `${photos.length} memories in our little universe 💗`
+      : "Your universe is ready for its first memory ☁️"
+  );
+}
+
+/* Open a larger version of a photo */
+function openViewer(url) {
+  $("viewerContent").innerHTML = `
+    <img src="${esc(url)}" decoding="async" alt="Our memory">
+  `;
+
+  $("viewer").classList.add("open");
+}
+
+function closeViewer() {
+  $("viewer").classList.remove("open");
+  $("viewerContent").innerHTML = "";
+}
+
+$("viewerClose").onclick = closeViewer;
+
+$("viewer").addEventListener("click", event => {
+  if (event.target === $("viewer")) closeViewer();
+});
+
+/* Sign in */
+$("loginBtn").onclick = () => {
+  $("modal").classList.add("open");
+  $("email").focus();
+};
+
+$("cancelModal").onclick = () => {
+  $("modal").classList.remove("open");
+};
+
+$("modal").addEventListener("click", event => {
+  if (event.target === $("modal")) {
+    $("modal").classList.remove("open");
+  }
+});
+
+$("submitLogin").onclick = async () => {
+  if (!db) {
+    status("Supabase is not configured.");
+    return;
+  }
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+
+  if (!email || !password) {
+    status("Enter your email and password.");
+    return;
+  }
+
+  $("submitLogin").disabled = true;
+  status("Signing in…");
+
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    session = data.session;
+    $("modal").classList.remove("open");
+    updateAuthUI();
+
+    await loadPhotos();
+    status("Welcome back ☁️");
+  } catch (error) {
+    status("Sign-in failed: " + (error.message || String(error)));
+  } finally {
+    $("submitLogin").disabled = false;
+  }
+};
+
+$("password").addEventListener("keydown", event => {
+  if (event.key === "Enter") $("submitLogin").click();
+});
+
+$("logoutBtn").onclick = async () => {
+  const { error } = await db.auth.signOut();
+
+  if (error) {
+    status("Sign-out failed: " + error.message);
+    return;
+  }
+
+  session = null;
+  updateAuthUI();
+  status("Signed out. Enjoy the memories 💗");
+};
+
+/* Upload multiple images */
+$("uploadBtn").onclick = () => $("fileInput").click();
+
+$("fileInput").onchange = async event => {
+  const files = Array.from(event.target.files || []);
+  event.target.value = "";
+
+  if (!session || !files.length) return;
+
+  if (busy) {
+    status("An upload is already running…");
+    return;
+  }
+
+  busy = true;
+
+  let added = 0;
+  let skipped = 0;
+  let failed = 0;
+  let lastError = "";
+
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
 
       try {
-        for (let index = 0; index < files.length; index++) {
-          const file = files[index];
-
-          if (!file.type.startsWith("image/")) {
-            skipped++;
-            continue;
-          }
-
-          if (file.size > 20 * 1024 * 1024) {
-            failed++;
-            status(`Skipped ${file.name}: larger than 20 MB.`);
-            continue;
-          }
-
-          status(`Uploading ${index + 1} of ${files.length}: ${file.name}`);
-
-          try {
-            const digest = await sha256(file);
-
-            const { data: duplicate, error: duplicateError } = await db
-              .from("photos")
-              .select("id")
-              .eq("content_sha256", digest)
-              .maybeSingle();
-
-            if (duplicateError) throw duplicateError;
-
-            if (duplicate) {
-              skipped++;
-              continue;
-            }
-
-            const storagePath =
-              `${crypto.randomUUID()}-${safeFilename(file.name)}`;
-
-            const { error: storageError } = await db.storage
-              .from(BUCKET)
-              .upload(storagePath, file, {
-                contentType: file.type,
-                upsert: false
-              });
-
-            if (storageError) throw storageError;
-
-            const { error: rowError } = await db
-              .from("photos")
-              .insert({
-                storage_path: storagePath,
-                original_filename: file.name,
-                captured_at: new Date(file.lastModified).toISOString(),
-                content_sha256: digest
-              });
-
-            if (rowError) {
-              // Try to clean up an uploaded file if its database insert fails.
-              const { error: cleanupError } = await db.storage
-                .from(BUCKET)
-                .remove([storagePath]);
-
-              if (cleanupError) {
-                console.error("Failed to clean up an unregistered image:", cleanupError);
-              }
-
-              throw rowError;
-            }
-
-            uploaded++;
-          } catch (error) {
-            console.error("Upload failed:", file.name, error);
-            failed++;
-          }
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Please choose image files.");
         }
 
-        await loadPhotos();
+        if (file.size > 20 * 1024 * 1024) {
+          throw new Error(`${file.name} is larger than 20 MB.`);
+        }
 
-        status(
-          `Finished! Uploaded ${uploaded}, skipped ${skipped}, failed ${failed}. ☁️`
-        );
-      } finally {
-        busy = false;
-        $("uploadBtn").disabled = false;
-        $("deleteAllBtn").disabled = false;
-      }
-    };
+        status(`Adding memory ${i + 1} of ${files.length}…`);
 
-    /* ==========================================
-       EDIT PHOTO DATE
-       ========================================== */
+        const digest = await hashFile(file);
 
-    async function editDate(photo) {
-      if (!session || busy) return;
+        if (photos.some(photo => photo.content_sha256 === digest)) {
+          skipped++;
+          continue;
+        }
 
-      const current = photo.captured_at
-        ? new Date(photo.captured_at)
-        : new Date();
+        const extension = (
+          file.name.split(".").pop() || "jpg"
+        ).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "jpg";
 
-      const dateInput = [
-        current.getFullYear(),
-        String(current.getMonth() + 1).padStart(2, "0"),
-        String(current.getDate()).padStart(2, "0")
-      ].join("-");
+        const path =
+          `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-      const entered = prompt("Enter the date (YYYY-MM-DD):", dateInput);
-
-      if (entered === null) return;
-
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(entered)) {
-        status("Please use the format YYYY-MM-DD.");
-        return;
-      }
-
-      const parsed = new Date(`${entered}T12:00:00`);
-
-      if (Number.isNaN(parsed.getTime()) ||
-          parsed.toISOString().slice(0, 10) !== entered) {
-        status("That date isn't valid.");
-        return;
-      }
-
-      busy = true;
-
-      try {
-        const { error } = await db
-          .from("photos")
-          .update({ captured_at: parsed.toISOString() })
-          .eq("id", photo.id);
-
-        if (error) throw error;
-
-        photo.captured_at = parsed.toISOString();
-        render(false);
-        status("Memory date updated ♡");
-      } catch (error) {
-        status("Couldn't update date: " + error.message);
-      } finally {
-        busy = false;
-      }
-    }
-
-    /* ==========================================
-       DELETE ONE PHOTO
-       ========================================== */
-
-    async function deleteOnePhoto(photo) {
-      if (!session || busy) {
-        status("Please log in and wait for any current task to finish.");
-        return;
-      }
-
-      const confirmed = confirm(
-        "Delete this photo?\n\nThis action cannot be undone."
-      );
-
-      if (!confirmed) return;
-
-      busy = true;
-      $("uploadBtn").disabled = true;
-      $("deleteAllBtn").disabled = true;
-
-      try {
-        // Remove the storage object first. If that fails, keep its database row.
-        const { error: storageError } = await db.storage
+        const { error: uploadError } = await db.storage
           .from(BUCKET)
-          .remove([photo.storage_path]);
+          .upload(path, file, {
+            contentType: file.type,
+            upsert: false
+          });
 
-        if (storageError) throw storageError;
+        if (uploadError) {
+          throw new Error("Storage upload: " + uploadError.message);
+        }
 
-        const { error: rowError } = await db
+        /*
+          Save the original file's modified date at upload time.
+          file.lastModified is supplied by the browser for the selected file.
+        */
+        const modifiedDate = file.lastModified
+          ? new Date(file.lastModified)
+          : null;
+
+        const { data: row, error: rowError } = await db
           .from("photos")
-          .delete()
-          .eq("id", photo.id);
+          .insert({
+            storage_path: path,
+            original_filename: file.name,
+            caption: "",
+            captured_at: modifiedDate
+              ? modifiedDate.toISOString()
+              : null,
+            x: 0,
+            y: 0,
+            width: null,
+            height: null,
+            content_sha256: digest
+          })
+          .select()
+          .single();
 
         if (rowError) {
-          throw new Error(
-            "The image file was removed, but the database record could not be deleted: " +
-            rowError.message
-          );
+          await db.storage.from(BUCKET).remove([path]);
+          throw new Error("Database insert: " + rowError.message);
         }
 
-        photos = photos.filter(item => item.id !== photo.id);
-        render(false);
-        status("Photo deleted ♡");
+        photos.push(row);
+        added++;
       } catch (error) {
-        console.error(error);
-        await loadPhotos();
-        status("Couldn't fully delete the photo: " + error.message);
-      } finally {
-        busy = false;
-        $("uploadBtn").disabled = false;
-        $("deleteAllBtn").disabled = false;
+        console.error("Photo upload failed:", error);
+        failed++;
+        lastError = error?.message || String(error);
       }
     }
+  } finally {
+    busy = false;
+    render(true);
+  }
 
-    /* ==========================================
-       DELETE ALL PHOTOS
-       ========================================== */
+  if (lastError) {
+    status(
+      `Upload finished: added ${added}, duplicates skipped ${skipped}, failed ${failed}. ${lastError}`
+    );
+  } else {
+    status(
+      `Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`
+    );
+  }
+};
 
-    $("deleteAllBtn").onclick = async () => {
-      if (!session || busy) {
-        status("Please log in and wait for any current task to finish.");
-        return;
-      }
+/* Change a photo's displayed date */
+async function editDate(photo) {
+  const current = photo.captured_at
+    ? new Date(photo.captured_at).toISOString().slice(0, 10)
+    : "";
 
-      if (!photos.length) {
-        status("Your photo wall is already empty ♡");
-        return;
-      }
+  const input = prompt("Enter the photo's modified date (YYYY-MM-DD):", current);
 
-      const count = photos.length;
+  if (input === null) return;
 
-      const confirmed = confirm(
-        `⚠️ DELETE ALL ${count} PHOTOS?\n\n` +
-        "This will remove the images and their photo records from your wall.\n\n" +
-        "This action cannot be undone.\n\n" +
-        "Are you sure you want to continue?"
-      );
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    status("Please use the date format YYYY-MM-DD.");
+    return;
+  }
 
-      if (!confirmed) return;
+  const date = new Date(input + "T12:00:00");
 
-      // Extra confirmation to prevent an accidental click.
-      const typed = prompt(
-        `To confirm deletion of all ${count} photos, type DELETE ALL:`
-      );
+  if (isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== input) {
+    status("That date doesn't look valid.");
+    return;
+  }
 
-      if (typed !== "DELETE ALL") {
-        status("Delete All cancelled. Your photos are safe ♡");
-        return;
-      }
+  const { error } = await db
+    .from("photos")
+    .update({ captured_at: date.toISOString() })
+    .eq("id", photo.id);
 
-      busy = true;
-      $("deleteAllBtn").disabled = true;
-      $("uploadBtn").disabled = true;
+  if (error) {
+    status("Couldn't update date: " + error.message);
+    return;
+  }
 
-      try {
-        const snapshot = [...photos];
-        const paths = snapshot.map(photo => photo.storage_path);
+  photo.captured_at = date.toISOString();
 
-        status("Removing stored images…");
+  render(false);
+  status("Photo date updated ✨");
+}
 
-        // Remove files in batches of up to 100.
-        // If storage removal fails, leave the database rows in place.
-        for (let i = 0; i < paths.length; i += 100) {
-          const batch = paths.slice(i, i + 100);
+/* Delete an individual photo */
+async function removePhoto(photo) {
+  if (busy) {
+    status("Please wait for the current task to finish.");
+    return;
+  }
 
-          const { error } = await db.storage
-            .from(BUCKET)
-            .remove(batch);
+  if (!confirm("Remove this memory from the wall? This cannot be undone.")) {
+    return;
+  }
 
-          if (error) {
-            throw new Error(
-              "Storage cleanup stopped. Some images may already have been removed. " +
-              error.message
-            );
-          }
-        }
+  busy = true;
 
-        status("Removing photo records…");
+  try {
+    const { error: rowError } = await db
+      .from("photos")
+      .delete()
+      .eq("id", photo.id);
 
-        // Delete only the records loaded for this wall.
-        // Delete individually so a permission or row error can be identified.
-        for (const photo of snapshot) {
-          const { error } = await db
-            .from("photos")
-            .delete()
-            .eq("id", photo.id);
+    if (rowError) {
+      throw rowError;
+    }
 
-          if (error) {
-            throw new Error(
-              "Some images were removed, but a photo record could not be deleted: " +
-              error.message
-            );
-          }
-        }
+    const { error: storageError } = await db.storage
+      .from(BUCKET)
+      .remove([photo.storage_path]);
 
-        photos = [];
-        render(false);
+    photos = photos.filter(item => item.id !== photo.id);
+    render(false);
 
-        status("All photos deleted! Your universe is ready for a fresh batch ☁️💗");
-      } catch (error) {
-        console.error("Delete All error:", error);
+    status(
+      storageError
+        ? "Photo record removed, but storage cleanup may need attention."
+        : "Memory removed 💗"
+    );
+  } catch (error) {
+    status("Couldn't remove photo: " + error.message);
+  } finally {
+    busy = false;
+  }
+}
 
-        // Refresh to show the actual database state after any partial operation.
-        await loadPhotos();
+/* Change the wall's title on this device */
+$("titleBtn").onclick = () => {
+  const current = $("wallTitle").textContent;
+  const next = prompt("Give your photo wall a title:", current);
 
-        status(
-          "Delete All didn't finish completely: " +
-          error.message +
-          " Check the wall before trying again."
-        );
-      } finally {
-        busy = false;
-        $("deleteAllBtn").disabled = false;
-        $("uploadBtn").disabled = false;
-      }
+  if (!next || !next.trim()) return;
+
+  $("wallTitle").textContent = next.trim();
+  localStorage.setItem("photoWallTitle", next.trim());
+
+  status("Wall title changed on this device.");
+};
+
+const savedTitle = localStorage.getItem("photoWallTitle");
+
+if (savedTitle) {
+  $("wallTitle").textContent = savedTitle;
+}
+
+/* Dragging, mouse-wheel zoom and touch pinch zoom */
+const activePointers = new Map();
+let pointerStart = null;
+let pinchState = null;
+
+function pointerDistance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function pointerMidpoint(a, b) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2
+  };
+}
+
+stage.addEventListener("pointerdown", event => {
+  if (
+    event.target.closest(".card") ||
+    event.target.closest("button")
+  ) return;
+
+  stage.setPointerCapture(event.pointerId);
+
+  activePointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
+  if (activePointers.size === 1) {
+    pointerStart = {
+      x: event.clientX,
+      y: event.clientY,
+      tx,
+      ty
     };
 
-    /* ==========================================
-       CHANGE WALL TITLE
-       ========================================== */
+    stage.classList.add("dragging");
+  } else if (activePointers.size === 2) {
+    const points = [...activePointers.values()];
+    const midpoint = pointerMidpoint(points[0], points[1]);
 
-    $("titleBtn").onclick = () => {
-      if (!session) return;
-
-      const current = $("wallTitle").textContent;
-      const entered = prompt("Give your universe a title ♡", current);
-
-      if (entered === null || !entered.trim()) return;
-
-      $("wallTitle").textContent = entered.trim();
+    pinchState = {
+      distance: pointerDistance(points[0], points[1]),
+      scale,
+      midpoint,
+      tx,
+      ty
     };
+  }
+});
 
-    /* ==========================================
-       ZOOM AND DRAG
-       ========================================== */
+stage.addEventListener("pointermove", event => {
+  if (!activePointers.has(event.pointerId)) return;
 
-    function clampZoom(value) {
-      return Math.min(3, Math.max(0.35, value));
+  activePointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
+  if (activePointers.size >= 2) {
+    const points = [...activePointers.values()];
+    const midpoint = pointerMidpoint(points[0], points[1]);
+
+    if (!pinchState) {
+      pinchState = {
+        distance: pointerDistance(points[0], points[1]),
+        scale,
+        midpoint,
+        tx,
+        ty
+      };
+      return;
     }
 
-    $("universe").addEventListener("wheel", event => {
-      event.preventDefault();
+    const distance = pointerDistance(points[0], points[1]);
 
-      const previousZoom = zoom;
-      const factor = event.deltaY < 0 ? 1.1 : 0.9;
-      zoom = clampZoom(zoom * factor);
+    scale = Math.max(
+      0.2,
+      Math.min(3, pinchState.scale * (
+        distance / (pinchState.distance || 1)
+      ))
+    );
 
-      const rect = $("universe").getBoundingClientRect();
-      const pointerX = event.clientX - rect.left - rect.width / 2;
-      const pointerY = event.clientY - rect.top - rect.height / 2;
+    tx = midpoint.x -
+      (pinchState.midpoint.x - pinchState.tx) *
+      (scale / (pinchState.scale || 1));
 
-      const ratio = zoom / previousZoom;
+    ty = midpoint.y -
+      (pinchState.midpoint.y - pinchState.ty) *
+      (scale / (pinchState.scale || 1));
 
-      panX = pointerX - (pointerX - panX) * ratio;
-      panY = pointerY - (pointerY - panY) * ratio;
+    scheduleTransform();
+    return;
+  }
 
-      applyWorldTransform();
-    }, { passive: false });
+  if (pointerStart) {
+    tx = pointerStart.tx + (event.clientX - pointerStart.x);
+    ty = pointerStart.ty + (event.clientY - pointerStart.y);
+    scheduleTransform();
+  }
+});
 
-    $("universe").addEventListener("pointerdown", event => {
-      if (event.target.closest("button")) return;
+function endPointer(event) {
+  activePointers.delete(event.pointerId);
+  pinchState = null;
 
-      dragging = true;
-      dragStartX = event.clientX;
-      dragStartY = event.clientY;
-      initialPanX = panX;
-      initialPanY = panY;
+  if (activePointers.size === 1) {
+    const point = [...activePointers.values()][0];
 
-      $("universe").classList.add("dragging");
-      $("universe").setPointerCapture(event.pointerId);
-    });
+    pointerStart = {
+      x: point.x,
+      y: point.y,
+      tx,
+      ty
+    };
+  } else {
+    pointerStart = null;
+  }
 
-    $("universe").addEventListener("pointermove", event => {
-      if (!dragging) return;
+  if (!activePointers.size) {
+    stage.classList.remove("dragging");
+  }
+}
 
-      panX = initialPanX + event.clientX - dragStartX;
-      panY = initialPanY + event.clientY - dragStartY;
+stage.addEventListener("pointerup", endPointer);
+stage.addEventListener("pointercancel", endPointer);
 
-      applyWorldTransform();
-    });
+stage.addEventListener("wheel", event => {
+  event.preventDefault();
 
-    function stopDragging() {
-      dragging = false;
-      $("universe").classList.remove("dragging");
-    }
+  const oldScale = scale;
 
-    $("universe").addEventListener("pointerup", stopDragging);
-    $("universe").addEventListener("pointercancel", stopDragging);
+  scale = Math.max(
+    0.2,
+    Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92))
+  );
 
-    let activeTouches = new Map();
+  const rect = stage.getBoundingClientRect();
+  const px = event.clientX - rect.left;
+  const py = event.clientY - rect.top;
 
-    $("universe").addEventListener("touchstart", event => {
-      for (const touch of event.changedTouches) {
-        activeTouches.set(touch.identifier, {
-          x: touch.clientX,
-          y: touch.clientY
-        });
-      }
+  // Zoom toward the mouse cursor.
+  tx = px - (px - tx) * (scale / oldScale);
+  ty = py - (py - ty) * (scale / oldScale);
 
-      if (activeTouches.size === 2) {
-        const points = [...activeTouches.values()];
+  scheduleTransform();
+}, { passive: false });
 
-        pinchStartDistance = Math.hypot(
-          points[0].x - points[1].x,
-          points[0].y - points[1].y
-        );
+/* Start the website */
+async function init() {
+  applyTransform();
 
-        pinchStartZoom = zoom;
-      }
-    }, { passive: true });
+  db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    $("universe").addEventListener("touchmove", event => {
-      if (activeTouches.size !== 2) return;
+  const { data, error } = await db.auth.getSession();
 
-      const touches = [...event.touches];
+  if (error) {
+    status("Couldn't check login: " + error.message);
+    return;
+  }
 
-      if (touches.length < 2) return;
+  session = data.session;
+  updateAuthUI();
 
-      const distance = Math.hypot(
-        touches[0].clientX - touches[1].clientX,
-        touches[0].clientY - touches[1].clientY
-      );
+  db.auth.onAuthStateChange((_event, newSession) => {
+    session = newSession;
+    updateAuthUI();
+  });
 
-      if (pinchStartDistance > 0) {
-        zoom = clampZoom(
-          pinchStartZoom * distance / pinchStartDistance
-        );
+  await loadPhotos();
+}
 
-        applyWorldTransform();
-      }
-    }, { passive: true });
-
-    function clearTouches(event) {
-      for (const touch of event.changedTouches) {
-        activeTouches.delete(touch.identifier);
-      }
-
-      if (activeTouches.size < 2) {
-        pinchStartDistance = 0;
-      }
-    }
-
-    $("universe").addEventListener("touchend", clearTouches);
-    $("universe").addEventListener("touchcancel", clearTouches);
-
-    /* ==========================================
-       START THE WEBSITE
-       ========================================== */
-
-    async function start() {
-      try {
-        const { data, error } = await db.auth.getSession();
-
-        if (error) throw error;
-
-        session = data.session;
-        updateAuthUI();
-        await loadPhotos();
-      } catch (error) {
-        console.error(error);
-        status("Couldn't start the website: " + error.message);
-      }
-    }
-
-    start();
-  </script>
+init();
+</script>
 </body>
 </html>
