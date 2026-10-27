@@ -3,19 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#071a38">
-<title>Our Little Photo Universe ☁️</title>
+<meta name="theme-color" content="#08172f">
+<title>Our Little Photo Universe ✦</title>
 
 <style>
 :root {
-  --sky: #071a38;
-  --deep: #8bd7ff;
-  --ink: #e6f3ff;
+  --sky: #08172f;
+  --deep: #9ddcff;
+  --ink: #e4f2ff;
   --paper: #fffdf8;
-  --navy: #071a38;
-  --navy-light: #102b52;
-  --blue: #183e6b;
-  --blue-glow: #3e8ac8;
 }
 
 * { box-sizing: border-box; }
@@ -30,10 +26,18 @@ html, body {
 }
 
 body {
-  background:
-    radial-gradient(ellipse at 50% 45%, #153b68 0%, transparent 58%),
-    radial-gradient(circle at 15% 20%, #17365a 0%, transparent 32%),
-    linear-gradient(145deg, #061329 0%, #0a2043 52%, #07172f 100%);
+  background-color: #08172f;
+  background-image:
+    radial-gradient(2px 2px at 8% 18%, #fff 98%, transparent),
+    radial-gradient(2px 2px at 19% 72%, #a9dcff 98%, transparent),
+    radial-gradient(3px 3px at 32% 35%, #fff 98%, transparent),
+    radial-gradient(2px 2px at 48% 14%, #fff 98%, transparent),
+    radial-gradient(2px 2px at 62% 66%, #b9e5ff 98%, transparent),
+    radial-gradient(3px 3px at 77% 28%, #fff 98%, transparent),
+    radial-gradient(2px 2px at 88% 78%, #fff 98%, transparent),
+    radial-gradient(2px 2px at 95% 12%, #a9dcff 98%, transparent),
+    radial-gradient(ellipse at 50% 50%, #16355b 0%, #0b1d3a 48%, #050d20 100%);
+  background-attachment: fixed;
 }
 
 button, input { font: inherit; }
@@ -43,30 +47,25 @@ button {
   border: 0;
   border-radius: 999px;
   padding: 10px 15px;
-  background: #edf6ff;
-  color: #17385e;
-  box-shadow: 0 4px 0 #86a9cc;
+  background: #f5fbff;
+  color: #164e69;
+  box-shadow: 0 4px 0 #8cb9d5;
   transition: transform .15s, box-shadow .15s;
 }
 
 button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 #86a9cc;
+  box-shadow: 0 6px 0 #8cb9d5;
 }
 
 button:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #86a9cc;
-}
-
-button:disabled {
-  opacity: .6;
-  cursor: wait;
+  box-shadow: 0 1px 0 #8cb9d5;
 }
 
 button.primary {
-  background: #8bd7ff;
-  color: #082443;
+  background: #8dd8f7;
+  color: #164e69;
 }
 
 button.danger {
@@ -91,20 +90,20 @@ header {
 header > * { pointer-events: auto; }
 
 .brand {
-  background: #0b2345e8;
-  backdrop-filter: blur(14px);
-  border: 1px solid #8bd7ff45;
-  border-radius: 20px;
+  background: #102849e8;
+  backdrop-filter: blur(10px);
+  border: 1px solid #9ddcff55;
+  border-radius: 22px;
   padding: 8px 14px;
-  box-shadow: 0 6px 24px #0003;
+  box-shadow: 0 5px 24px #0004;
   min-width: 0;
 }
 
 .brand h1 {
-  color: #f4f8ff;
   font-size: clamp(16px, 3.8vw, 23px);
   margin: 0;
   font-weight: 900;
+  color: #eaf7ff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -113,7 +112,7 @@ header > * { pointer-events: auto; }
 .brand p {
   font-size: 12px;
   margin: 2px 0 0;
-  color: #a5c7e9;
+  color: #a7d5f2;
 }
 
 .actions {
@@ -151,10 +150,10 @@ header > * { pointer-events: auto; }
   z-index: 50;
   min-width: 190px;
   padding: 8px;
-  background: #102747fa;
-  border: 1px solid #47739b;
+  background: #f8fcff;
+  border: 1px solid #d9eef7;
   border-radius: 16px;
-  box-shadow: 0 12px 34px #0005;
+  box-shadow: 0 10px 30px #0005;
 }
 
 #settingsDropdown button {
@@ -165,14 +164,13 @@ header > * { pointer-events: auto; }
   border-radius: 10px;
   box-shadow: none;
   font-size: 13px;
-  color: #eef7ff;
   white-space: nowrap;
 }
 
 #settingsDropdown button:hover {
   transform: none;
   box-shadow: none;
-  background: #203f65;
+  background: #fff0f3;
 }
 
 /* Photo wall */
@@ -183,6 +181,7 @@ header > * { pointer-events: auto; }
   touch-action: none;
   cursor: grab;
   isolation: isolate;
+  z-index: 1;
 }
 
 #stage.dragging { cursor: grabbing; }
@@ -197,60 +196,66 @@ header > * { pointer-events: auto; }
   will-change: transform;
 }
 
-/* Background decorations */
-.cloud {
+/* Static sky decorations */
+.sky-decoration {
   position: fixed;
-  opacity: .7;
+  z-index: 0;
   pointer-events: none;
-  font-size: 45px;
-  filter: drop-shadow(0 4px 10px #0005);
-  animation: float 8s ease-in-out infinite;
-  z-index: 1;
+  user-select: none;
+  line-height: 1;
+  opacity: .68;
+  filter: drop-shadow(0 0 12px #9ddcff30);
 }
 
-.cloud.c1 { left: 8%; top: 22%; }
-.cloud.c2 { right: 8%; bottom: 16%; animation-delay: -3s; }
-.cloud.c3 { right: 23%; top: 19%; font-size: 34px; animation-delay: -5s; }
-
-@keyframes float {
-  50% { transform: translateY(-12px); }
+.sky-cloud {
+  font-size: clamp(42px, 6vw, 78px);
+  opacity: .3;
 }
 
-/* Tightly packed photo cards */
+.sky-star {
+  color: #d9f0ff;
+  font-size: 24px;
+}
+
+.sky-heart {
+  font-size: 27px;
+  color: #ffb9d4;
+  opacity: .5;
+}
+
+/* Photo cards */
 .card {
   position: absolute;
   width: 160px;
-  padding: 6px 6px 9px;
+  padding: 8px 8px 10px;
   background: var(--paper);
-  border: 1px solid #ffffffd9;
-  border-radius: 9px;
-  box-shadow: 0 5px 14px #0005, 0 0 0 1px #ffffff16;
+  border-radius: 5px;
+  box-shadow: 0 7px 18px #0005, 0 0 0 1px #ffffff50;
   transform: rotate(var(--rot, 0deg));
   user-select: none;
   contain: layout style;
   will-change: transform, opacity;
-  animation: bloom .75s cubic-bezier(.18,.75,.28,1) both;
+  animation: bloom .65s cubic-bezier(.18,.75,.28,1) both;
   animation-delay: var(--delay, 0ms);
 }
 
 .card:before {
   content: "";
   position: absolute;
-  top: -5px;
+  top: -7px;
   left: 50%;
   transform: translateX(-50%) rotate(-3deg);
-  width: 43px;
-  height: 12px;
-  background: #8bd7ffcc;
-  border: 1px solid #ffffff66;
-  border-radius: 3px;
+  width: 54px;
+  height: 16px;
+  background: #a9e4f2bb;
+  border-radius: 2px;
   z-index: 2;
   pointer-events: none;
 }
 
 @keyframes bloom {
   from {
-    transform: translate(var(--from-x), var(--from-y)) scale(.12);
+    transform: translate(var(--from-x), var(--from-y)) scale(.12) rotate(0deg);
     opacity: 0;
   }
   to {
@@ -265,17 +270,16 @@ header > * { pointer-events: auto; }
   height: 142px;
   object-fit: cover;
   background: #eaf7fc;
-  border-radius: 5px;
   cursor: zoom-in;
   -webkit-user-drag: none;
   pointer-events: none;
 }
 
 .card .date {
-  font-size: 10px;
-  color: #657e94;
+  font-size: 11px;
+  color: #7899a8;
   text-align: center;
-  margin-top: 7px;
+  margin-top: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -294,59 +298,15 @@ header > * { pointer-events: auto; }
   padding: 5px 8px;
   font-size: 10px;
   box-shadow: none;
-  background: #e1f2ff;
-  color: #17385e;
+  background: #e8f7ff;
 }
 
 .editing .card .card-tools { display: flex; }
 
-/* Fixed decorative character stickers */
-.character-stickers {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.sticker {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 9px;
-  border: 2px solid #fffdf5;
-  border-radius: 19px;
-  background: #fffdf5;
-  box-shadow: 0 5px 0 #9bb8d4, 0 9px 20px #0003;
-  transform: rotate(var(--tilt, -7deg));
-}
-
-.sticker-art {
-  display: block;
-  font-size: 36px;
-  line-height: 1.1;
-}
-
-.sticker-caption {
-  margin-top: 4px;
-  font-size: 10px;
-  font-weight: 900;
-  color: #19395d;
-  letter-spacing: .5px;
-}
-
-.snoopy-sticker { left: 3%; top: 25%; --tilt: -9deg; }
-.woodstock-sticker { right: 5%; top: 25%; --tilt: 10deg; }
-.heart-sticker { left: 5%; bottom: 17%; --tilt: 8deg; }
-.star-sticker { right: 5%; bottom: 19%; --tilt: -10deg; }
-.snoopy-sleep-sticker { right: 12%; top: 59%; --tilt: 7deg; }
-.paw-sticker { left: 12%; top: 65%; --tilt: -12deg; }
-
 #empty {
   position: fixed;
   inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -357,31 +317,32 @@ header > * { pointer-events: auto; }
 
 .empty-box {
   max-width: 400px;
-  background: #102747e8;
-  border: 1px solid #709bc355;
+  background: #102849e8;
+  border: 1px solid #a9dcff66;
   border-radius: 28px;
   padding: 28px;
-  box-shadow: 0 12px 40px #0004;
+  box-shadow: 0 10px 40px #0004;
 }
 
 .empty-box .emoji { font-size: 52px; }
 .empty-box h2 { margin: 8px 0; font-size: 24px; }
-.empty-box p { line-height: 1.55; margin: 8px 0; color: #b4cde7; }
+.empty-box p { line-height: 1.55; margin: 8px 0; color: #c1e2f7; }
 
 #status {
   position: fixed;
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  background: #102747e8;
-  border: 1px solid #709bc344;
-  color: #e5f3ff;
+  background: #102849e8;
+  color: #e4f2ff;
+  backdrop-filter: blur(8px);
+  border: 1px solid #9ddcff55;
   border-radius: 999px;
   padding: 8px 14px;
   font-size: 12px;
   max-width: 90vw;
   text-align: center;
-  box-shadow: 0 4px 20px #0003;
+  box-shadow: 0 4px 18px #0004;
   z-index: 12;
 }
 
@@ -390,13 +351,12 @@ header > * { pointer-events: auto; }
   bottom: 18px;
   right: 15px;
   font-size: 11px;
-  color: #e5f3ff;
-  background: #102747e8;
-  border: 1px solid #709bc344;
+  color: #d0e9ff;
+  background: #102849d9;
   padding: 7px 10px;
   border-radius: 999px;
   pointer-events: none;
-  z-index: 4;
+  z-index: 12;
 }
 
 #modal {
@@ -404,7 +364,7 @@ header > * { pointer-events: auto; }
   position: fixed;
   z-index: 30;
   inset: 0;
-  background: #020b1cbb;
+  background: #06152bd9;
   backdrop-filter: blur(7px);
   align-items: center;
   justify-content: center;
@@ -415,17 +375,17 @@ header > * { pointer-events: auto; }
 
 .dialog {
   width: min(420px, 100%);
-  background: #102747;
-  color: #eaf5ff;
+  background: #f8fcff;
+  color: #31566a;
   border-radius: 25px;
   padding: 23px;
-  box-shadow: 0 20px 70px #0007;
+  box-shadow: 0 20px 70px #0006;
 }
 
 .dialog h2 { margin: 0 0 8px; }
 
 .dialog p {
-  color: #b4cde7;
+  color: #6a92a4;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -438,11 +398,11 @@ header > * { pointer-events: auto; }
 
 .dialog input {
   width: 100%;
-  border: 1px solid #456b93;
+  border: 1px solid #cbe8f4;
   border-radius: 12px;
   padding: 11px;
-  background: #0a1d38;
-  color: #edf7ff;
+  background: #f8fdff;
+  color: var(--ink);
 }
 
 .dialog .row {
@@ -454,7 +414,7 @@ header > * { pointer-events: auto; }
 
 .dialog .row button { flex: 1; }
 
-.small { font-size: 11px; color: #a5c7e9; }
+.small { font-size: 11px; color: #7d9eac; }
 .hidden { display: none !important; }
 
 #fileInput {
@@ -471,7 +431,7 @@ header > * { pointer-events: auto; }
   position: fixed;
   z-index: 25;
   inset: 0;
-  background: #020b1cf2;
+  background: #06152bf5;
   align-items: center;
   justify-content: center;
   padding: 20px;
@@ -523,8 +483,8 @@ header > * { pointer-events: auto; }
   left: 50%;
   bottom: 18px;
   transform: translateX(-50%);
-  color: #eef7ff;
-  background: #102747e8;
+  color: white;
+  background: #102f40d9;
   padding: 8px 12px;
   border-radius: 999px;
   font-size: 11px;
@@ -570,27 +530,9 @@ header > * { pointer-events: auto; }
     white-space: normal;
     line-height: 1.4;
   }
-
-  .sticker {
-    padding: 5px;
-    border-radius: 13px;
-    border-width: 1px;
-    box-shadow: 0 3px 0 #9bb8d4, 0 5px 12px #0003;
-  }
-
-  .sticker-art { font-size: 24px; }
-  .sticker-caption { font-size: 8px; }
-
-  .snoopy-sticker { left: 2%; top: 20%; }
-  .woodstock-sticker { right: 2%; top: 21%; }
-  .heart-sticker { left: 2%; bottom: 13%; }
-  .star-sticker { right: 2%; bottom: 14%; }
-  .snoopy-sleep-sticker { right: 3%; top: 59%; }
-  .paw-sticker { left: 3%; top: 62%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cloud { animation: none; }
   .card { animation-duration: .01ms; }
   button { transition: none; }
 }
@@ -600,7 +542,7 @@ header > * { pointer-events: auto; }
 <body>
 <header>
   <div class="brand">
-    <h1 id="wallTitle">Our Little Photo Universe ☁️</h1>
+    <h1 id="wallTitle">Our Little Photo Universe ✦</h1>
     <p>a tiny place for our favorite memories</p>
   </div>
 
@@ -611,10 +553,8 @@ header > * { pointer-events: auto; }
     <button id="logoutBtn" class="hidden">Log out</button>
 
     <div id="settingsMenu" class="settings-menu hidden">
-      <button id="moreMenuBtn" type="button"
-        aria-label="Settings" aria-haspopup="true"
-        aria-expanded="false" title="More settings">⋮</button>
-
+      <button id="moreMenuBtn" type="button" aria-label="Settings"
+        aria-haspopup="true" aria-expanded="false" title="More settings">⋮</button>
       <div id="settingsDropdown" class="hidden">
         <button id="deleteAllBtn" type="button" class="danger">
           🗑 Delete all photos
@@ -628,37 +568,27 @@ header > * { pointer-events: auto; }
   <div id="world"></div>
 </div>
 
-<div class="cloud c1">☁️</div>
-<div class="cloud c2">☁️</div>
-<div class="cloud c3">✦</div>
+<!-- Static background decorations: these never animate -->
+<div class="sky-decoration sky-cloud" style="left:4%;top:22%">☁️</div>
+<div class="sky-decoration sky-cloud" style="right:4%;bottom:13%">☁️</div>
+<div class="sky-decoration sky-cloud" style="left:34%;bottom:7%;font-size:42px">☁️</div>
 
-<!-- Decorative stickers; these do not affect the photo wall -->
-<div class="character-stickers" aria-hidden="true">
-  <div class="sticker snoopy-sticker">
-    <span class="sticker-art">🐶</span>
-    <span class="sticker-caption">SNOOPY</span>
-  </div>
-  <div class="sticker woodstock-sticker">
-    <span class="sticker-art">🐤</span>
-  </div>
-  <div class="sticker heart-sticker">
-    <span class="sticker-art">💙</span>
-  </div>
-  <div class="sticker star-sticker">
-    <span class="sticker-art">⭐</span>
-  </div>
-  <div class="sticker snoopy-sleep-sticker">
-    <span class="sticker-art">😴</span>
-    <span class="sticker-caption">DREAM A LITTLE</span>
-  </div>
-  <div class="sticker paw-sticker">
-    <span class="sticker-art">🐾</span>
-  </div>
-</div>
+<div class="sky-decoration sky-star" style="left:15%;top:14%">✦</div>
+<div class="sky-decoration sky-star" style="left:27%;top:82%">✧</div>
+<div class="sky-decoration sky-star" style="right:19%;top:17%">✦</div>
+<div class="sky-decoration sky-star" style="right:12%;top:54%">✧</div>
+<div class="sky-decoration sky-star" style="left:7%;bottom:16%">✦</div>
+<div class="sky-decoration sky-star" style="right:37%;top:12%">✧</div>
+<div class="sky-decoration sky-star" style="left:44%;bottom:19%;font-size:17px">✦</div>
+<div class="sky-decoration sky-star" style="right:45%;bottom:12%;font-size:16px">✧</div>
+
+<div class="sky-decoration sky-heart" style="left:23%;top:44%">♡</div>
+<div class="sky-decoration sky-heart" style="right:26%;bottom:24%">♥</div>
+<div class="sky-decoration sky-heart" style="right:8%;top:36%">♡</div>
 
 <div id="empty">
   <div class="empty-box">
-    <div class="emoji">☁️💙</div>
+    <div class="emoji">☁️💗</div>
     <h2>A little universe of us</h2>
     <p>Every photo is a tiny memory. The wall will grow as you add more.</p>
     <p class="small">Log in with an owner account to add photos.</p>
@@ -673,20 +603,14 @@ header > * { pointer-events: auto; }
   <div class="dialog">
     <h2>Owner login ☁️</h2>
     <p>Sign in to add or manage memories.</p>
-
     <label for="email">Email</label>
-    <input id="email" type="email" autocomplete="username"
-      placeholder="you@example.com">
-
+    <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
     <label for="password">Password</label>
-    <input id="password" type="password" autocomplete="current-password"
-      placeholder="Your password">
-
+    <input id="password" type="password" autocomplete="current-password" placeholder="Your password">
     <div class="row">
       <button id="cancelModal">Cancel</button>
       <button id="submitLogin" class="primary">Sign in</button>
     </div>
-
     <p class="small">Only accounts allowed by your Supabase settings can manage the wall.</p>
   </div>
 </div>
@@ -733,43 +657,77 @@ function esc(value) {
 }
 
 /*
- * Tightly packed hexagonal arrangement, filled outward from
- * the center. The positions leave a small gap between cards.
+ * Collision-safe layout:
+ * Cards occupy slots on a staggered grid. We select the slot
+ * nearest the center only when it is far enough from all
+ * previously selected slots. This prevents the layout from
+ * becoming too dense as more photos are added.
  */
-function spherePosition(index) {
-  const horizontalSpacing = 166;
-  const verticalSpacing = 184;
-  const extent = Math.max(
-    5,
-    Math.ceil(Math.sqrt(photos.length)) + 3
-  );
+function cardWidth() {
+  return window.innerWidth <= 600 ? 145 : 160;
+}
 
+function cardHeight() {
+  const mobile = window.innerWidth <= 600;
+  const base = mobile ? 125 : 142;
+
+  // Reserve enough room for the date and the visible owner tools.
+  return base + 8 + 14 + (session ? 37 : 0) + 20;
+}
+
+function spherePosition(index) {
+  const mobile = window.innerWidth <= 600;
+  const width = cardWidth();
+  const height = cardHeight();
+
+  // Add a generous safety margin for rotation, tape, and shadows.
+  const gapX = mobile ? 20 : 22;
+  const gapY = mobile ? 22 : 24;
+  const stepX = width + gapX;
+  const stepY = height + gapY;
+
+  const extent = Math.max(12, Math.ceil(Math.sqrt(index + 1)) * 3 + 6);
   const candidates = [];
 
   for (let row = -extent; row <= extent; row++) {
     for (let col = -extent; col <= extent; col++) {
-      const x = col * horizontalSpacing +
-        (Math.abs(row) % 2) * (horizontalSpacing / 2);
-      const y = row * verticalSpacing;
+      const x = col * stepX + (Math.abs(row) % 2) * (stepX / 2);
+      const y = row * stepY;
 
-      candidates.push({
-        x,
-        y,
-        distance: x * x + y * y
-      });
+      // A circular distance creates a rounded, center-out spread.
+      const distance = x * x + y * y;
+
+      candidates.push({ x, y, distance, row, col });
     }
   }
 
   candidates.sort((a, b) =>
-    a.distance - b.distance || a.y - b.y || a.x - b.x
+    a.distance - b.distance ||
+    a.y - b.y ||
+    a.x - b.x
   );
 
-  return candidates[index] || { x: 0, y: 0 };
+  const chosen = [];
+  const minDistanceX = width + gapX;
+  const minDistanceY = height + gapY;
+
+  for (const candidate of candidates) {
+    const overlaps = chosen.some(point =>
+      Math.abs(candidate.x - point.x) < minDistanceX &&
+      Math.abs(candidate.y - point.y) < minDistanceY
+    );
+
+    if (!overlaps) chosen.push(candidate);
+    if (chosen.length > index) break;
+  }
+
+  const position = chosen[index] || candidates[index];
+
+  return { x: position.x, y: position.y };
 }
 
 function applyTransform() {
-  world.style.transform =
-    `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+  world.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
 }
 
 function scheduleTransform() {
@@ -798,7 +756,6 @@ function fileUrl(path) {
 
 function niceDate(value) {
   if (!value) return "Date unknown";
-
   const date = new Date(value);
   if (isNaN(date.getTime())) return "Date unknown";
 
@@ -818,7 +775,7 @@ async function hashFile(file) {
     .join("");
 }
 
-/* Render photo cards */
+/* Render the wall */
 function render(animate = true) {
   const fragment = document.createDocumentFragment();
 
@@ -827,18 +784,18 @@ function render(animate = true) {
     const card = document.createElement("article");
 
     card.className = "card";
-    card.style.left = (pos.x - 80) + "px";
-    card.style.top = (pos.y - 90) + "px";
+    card.style.left = (pos.x - cardWidth() / 2) + "px";
+    card.style.top = (pos.y - cardHeight() / 2) + "px";
 
+    // Keep card rotation small so it does not intrude into neighbors.
     const rotation = ((index * 17) % 5) - 2;
     card.style.setProperty("--rot", `${rotation}deg`);
     card.style.setProperty("--from-x", `${-pos.x}px`);
     card.style.setProperty("--from-y", `${-pos.y}px`);
     card.style.setProperty(
       "--delay",
-      animate ? `${Math.min(index * 18, 850)}ms` : "0ms"
+      animate ? `${Math.min(index * 18, 700)}ms` : "0ms"
     );
-
     card.dataset.id = photo.id;
 
     const url = fileUrl(photo.storage_path);
@@ -899,7 +856,7 @@ async function loadPhotos() {
 
   status(
     photos.length
-      ? `${photos.length} memories in our little universe 💙`
+      ? `${photos.length} memories in our little universe 💗`
       : "Your universe is ready for its first memory ☁️"
   );
 }
@@ -925,17 +882,13 @@ $("moreMenuBtn").addEventListener("click", event => {
   }
 });
 
-$("settingsDropdown").addEventListener("click", event => {
-  event.stopPropagation();
-});
+$("settingsDropdown").addEventListener("click", event => event.stopPropagation());
 
 document.addEventListener("click", event => {
-  if (!$("settingsMenu").contains(event.target)) {
-    closeSettingsMenu();
-  }
+  if (!$("settingsMenu").contains(event.target)) closeSettingsMenu();
 });
 
-/* Enlarged photo viewer */
+/* Individual photo viewer */
 let viewerScale = 1;
 let viewerX = 0;
 let viewerY = 0;
@@ -962,8 +915,7 @@ function openViewer(url) {
   closeSettingsMenu();
 
   $("viewerContent").innerHTML = `
-    <img src="${esc(url)}" decoding="async"
-      alt="Our memory" draggable="false">
+    <img src="${esc(url)}" decoding="async" alt="Our memory" draggable="false">
   `;
 
   viewerScale = 1;
@@ -976,14 +928,12 @@ function openViewer(url) {
   $("viewer").classList.add("open");
 
   const image = $("viewerContent").querySelector("img");
-
   image.addEventListener("load", updateViewerTransform);
+
   image.addEventListener("dblclick", event => {
     event.preventDefault();
-
-    if (viewerScale > 1) {
-      resetViewerZoom();
-    } else {
+    if (viewerScale > 1) resetViewerZoom();
+    else {
       viewerScale = 2;
       updateViewerTransform();
     }
@@ -1026,10 +976,7 @@ function viewerDistance(a, b) {
 }
 
 function viewerMidpoint(a, b) {
-  return {
-    x: (a.x + b.x) / 2,
-    y: (a.y + b.y) / 2
-  };
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
 $("viewerContent").addEventListener("pointerdown", event => {
@@ -1038,11 +985,7 @@ $("viewerContent").addEventListener("pointerdown", event => {
   event.preventDefault();
   $("viewerContent").setPointerCapture(event.pointerId);
 
-  viewerPointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
-
+  viewerPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   viewerDragged = false;
 
   if (viewerPointers.size === 1) {
@@ -1055,17 +998,14 @@ $("viewerContent").addEventListener("pointerdown", event => {
     };
   } else if (viewerPointers.size === 2) {
     const points = [...viewerPointers.values()];
-    const midpoint = viewerMidpoint(points[0], points[1]);
-
     viewerGesture = {
       type: "pinch",
       distance: viewerDistance(points[0], points[1]),
       scale: viewerScale,
-      midpoint,
+      midpoint: viewerMidpoint(points[0], points[1]),
       viewerX,
       viewerY
     };
-
     viewerDragged = true;
   }
 });
@@ -1073,11 +1013,7 @@ $("viewerContent").addEventListener("pointerdown", event => {
 $("viewerContent").addEventListener("pointermove", event => {
   if (!viewerPointers.has(event.pointerId)) return;
 
-  viewerPointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
-
+  viewerPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   if (!viewerGesture) return;
 
   if (viewerPointers.size >= 2 && viewerGesture.type === "pinch") {
@@ -1087,13 +1023,9 @@ $("viewerContent").addEventListener("pointermove", event => {
 
     if (viewerGesture.distance > 0) {
       const oldScale = viewerScale;
-      viewerScale = Math.max(
-        1,
-        Math.min(
-          6,
-          viewerGesture.scale * distance / viewerGesture.distance
-        )
-      );
+      viewerScale = Math.max(1, Math.min(6,
+        viewerGesture.scale * distance / viewerGesture.distance
+      ));
 
       const ratio = viewerScale / oldScale;
       const rect = $("viewerContent").getBoundingClientRect();
@@ -1102,7 +1034,6 @@ $("viewerContent").addEventListener("pointermove", event => {
 
       viewerX = px - (px - viewerGesture.viewerX) * ratio;
       viewerY = py - (py - viewerGesture.viewerY) * ratio;
-
       updateViewerTransform();
     }
 
@@ -1131,7 +1062,6 @@ function endViewerPointer(event) {
 
   if (viewerPointers.size === 1) {
     const point = [...viewerPointers.values()][0];
-
     viewerGesture = {
       type: "drag",
       x: point.x,
@@ -1147,20 +1077,16 @@ function endViewerPointer(event) {
 $("viewerContent").addEventListener("pointerup", endViewerPointer);
 $("viewerContent").addEventListener("pointercancel", endViewerPointer);
 
-/* Sign in */
+/* Login */
 $("loginBtn").onclick = () => {
   $("modal").classList.add("open");
   $("email").focus();
 };
 
-$("cancelModal").onclick = () => {
-  $("modal").classList.remove("open");
-};
+$("cancelModal").onclick = () => $("modal").classList.remove("open");
 
 $("modal").addEventListener("click", event => {
-  if (event.target === $("modal")) {
-    $("modal").classList.remove("open");
-  }
+  if (event.target === $("modal")) $("modal").classList.remove("open");
 });
 
 $("submitLogin").onclick = async () => {
@@ -1181,17 +1107,13 @@ $("submitLogin").onclick = async () => {
   status("Signing in…");
 
   try {
-    const { data, error } = await db.auth.signInWithPassword({
-      email,
-      password
-    });
-
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
     if (error) throw error;
 
     session = data.session;
     $("modal").classList.remove("open");
     updateAuthUI();
-
+    render(false);
     await loadPhotos();
     status("Welcome back ☁️");
   } catch (error) {
@@ -1215,10 +1137,11 @@ $("logoutBtn").onclick = async () => {
 
   session = null;
   updateAuthUI();
-  status("Signed out. Enjoy the memories 💙");
+  render(false);
+  status("Signed out. Enjoy the memories 💗");
 };
 
-/* Upload multiple images */
+/* Upload photos */
 $("uploadBtn").onclick = () => $("fileInput").click();
 
 $("fileInput").onchange = async event => {
@@ -1233,7 +1156,6 @@ $("fileInput").onchange = async event => {
   }
 
   busy = true;
-
   let added = 0;
   let skipped = 0;
   let failed = 0;
@@ -1253,7 +1175,6 @@ $("fileInput").onchange = async event => {
         }
 
         status(`Adding memory ${i + 1} of ${files.length}…`);
-
         const digest = await hashFile(file);
 
         if (photos.some(photo => photo.content_sha256 === digest)) {
@@ -1261,27 +1182,19 @@ $("fileInput").onchange = async event => {
           continue;
         }
 
-        const extension = (
-          file.name.split(".").pop() || "jpg"
-        ).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "jpg";
+        const extension = (file.name.split(".").pop() || "jpg")
+          .toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "jpg";
 
         const path =
           `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
         const { error: uploadError } = await db.storage
           .from(BUCKET)
-          .upload(path, file, {
-            contentType: file.type,
-            upsert: false
-          });
+          .upload(path, file, { contentType: file.type, upsert: false });
 
-        if (uploadError) {
-          throw new Error("Storage upload: " + uploadError.message);
-        }
+        if (uploadError) throw new Error("Storage upload: " + uploadError.message);
 
-        const modifiedDate = file.lastModified
-          ? new Date(file.lastModified)
-          : null;
+        const modifiedDate = file.lastModified ? new Date(file.lastModified) : null;
 
         const { data: row, error: rowError } = await db
           .from("photos")
@@ -1289,9 +1202,7 @@ $("fileInput").onchange = async event => {
             storage_path: path,
             original_filename: file.name,
             caption: "",
-            captured_at: modifiedDate
-              ? modifiedDate.toISOString()
-              : null,
+            captured_at: modifiedDate ? modifiedDate.toISOString() : null,
             x: 0,
             y: 0,
             width: null,
@@ -1320,17 +1231,13 @@ $("fileInput").onchange = async event => {
   }
 
   if (lastError) {
-    status(
-      `Upload finished: added ${added}, duplicates skipped ${skipped}, failed ${failed}. ${lastError}`
-    );
+    status(`Upload finished: added ${added}, duplicates skipped ${skipped}, failed ${failed}. ${lastError}`);
   } else {
-    status(
-      `Done 💙 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`
-    );
+    status(`Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`);
   }
 };
 
-/* Change a photo's displayed date */
+/* Edit photo date */
 async function editDate(photo) {
   if (busy) {
     status("Please wait for the current task to finish.");
@@ -1342,7 +1249,6 @@ async function editDate(photo) {
     : "";
 
   const input = prompt("Enter the photo's modified date (YYYY-MM-DD):", current);
-
   if (input === null) return;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
@@ -1357,8 +1263,7 @@ async function editDate(photo) {
     return;
   }
 
-  const { error } = await db
-    .from("photos")
+  const { error } = await db.from("photos")
     .update({ captured_at: date.toISOString() })
     .eq("id", photo.id);
 
@@ -1372,22 +1277,19 @@ async function editDate(photo) {
   status("Photo date updated ✨");
 }
 
-/* Delete an individual photo */
+/* Delete one photo */
 async function removePhoto(photo) {
   if (busy) {
     status("Please wait for the current task to finish.");
     return;
   }
 
-  if (!confirm("Remove this memory from the wall? This cannot be undone.")) {
-    return;
-  }
+  if (!confirm("Remove this memory from the wall? This cannot be undone.")) return;
 
   busy = true;
 
   try {
-    const { error: rowError } = await db
-      .from("photos")
+    const { error: rowError } = await db.from("photos")
       .delete()
       .eq("id", photo.id);
 
@@ -1400,11 +1302,9 @@ async function removePhoto(photo) {
     photos = photos.filter(item => item.id !== photo.id);
     render(false);
 
-    status(
-      storageError
-        ? "Photo record removed, but storage cleanup may need attention."
-        : "Memory removed 💙"
-    );
+    status(storageError
+      ? "Photo record removed, but storage cleanup may need attention."
+      : "Memory removed 💗");
   } catch (error) {
     status("Couldn't remove photo: " + error.message);
   } finally {
@@ -1450,8 +1350,7 @@ $("deleteAllBtn").addEventListener("click", async () => {
   try {
     status(`Removing ${photosToDelete.length} photo records…`);
 
-    const { error: rowError } = await db
-      .from("photos")
+    const { error: rowError } = await db.from("photos")
       .delete()
       .in("id", ids);
 
@@ -1467,10 +1366,7 @@ $("deleteAllBtn").addEventListener("click", async () => {
 
     for (let i = 0; i < paths.length; i += 100) {
       const batch = paths.slice(i, i + 100);
-
-      const { error: storageError } = await db.storage
-        .from(BUCKET)
-        .remove(batch);
+      const { error: storageError } = await db.storage.from(BUCKET).remove(batch);
 
       if (storageError) {
         storageFailures += batch.length;
@@ -1479,10 +1375,7 @@ $("deleteAllBtn").addEventListener("click", async () => {
     }
 
     if (storageFailures) {
-      status(
-        `The wall is cleared, but storage cleanup failed for one or more batches. ` +
-        `Supabase: ${firstStorageError}`
-      );
+      status(`The wall is cleared, but storage cleanup failed for one or more batches. Supabase: ${firstStorageError}`);
     } else {
       status(`All ${photosToDelete.length} photos deleted. Your wall is clear ☁️`);
     }
@@ -1496,7 +1389,7 @@ $("deleteAllBtn").addEventListener("click", async () => {
   }
 });
 
-/* Change the wall title on this device */
+/* Change wall title on this device */
 $("titleBtn").onclick = () => {
   const current = $("wallTitle").textContent;
   const next = prompt("Give your photo wall a title:", current);
@@ -1505,15 +1398,11 @@ $("titleBtn").onclick = () => {
 
   $("wallTitle").textContent = next.trim();
   localStorage.setItem("photoWallTitle", next.trim());
-
   status("Wall title changed on this device.");
 };
 
 const savedTitle = localStorage.getItem("photoWallTitle");
-
-if (savedTitle) {
-  $("wallTitle").textContent = savedTitle;
-}
+if (savedTitle) $("wallTitle").textContent = savedTitle;
 
 /* Pan and pinch-to-zoom */
 const activePointers = new Map();
@@ -1527,10 +1416,7 @@ function pointerDistance(a, b) {
 }
 
 function pointerMidpoint(a, b) {
-  return {
-    x: (a.x + b.x) / 2,
-    y: (a.y + b.y) / 2
-  };
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
 stage.addEventListener("pointerdown", event => {
@@ -1538,11 +1424,7 @@ stage.addEventListener("pointerdown", event => {
   if (event.target.closest("button, input, a, select, textarea")) return;
 
   stage.setPointerCapture(event.pointerId);
-
-  activePointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
+  activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
   if (activePointers.size === 1) {
     pointerStart = {
@@ -1557,14 +1439,12 @@ stage.addEventListener("pointerdown", event => {
     stage.classList.add("dragging");
   } else if (activePointers.size === 2) {
     const points = [...activePointers.values()];
-    const midpoint = pointerMidpoint(points[0], points[1]);
 
     pointerStart = null;
-
     pinchState = {
       distance: pointerDistance(points[0], points[1]),
       scale,
-      midpoint,
+      midpoint: pointerMidpoint(points[0], points[1]),
       tx,
       ty
     };
@@ -1576,10 +1456,7 @@ stage.addEventListener("pointerdown", event => {
 stage.addEventListener("pointermove", event => {
   if (!activePointers.has(event.pointerId)) return;
 
-  activePointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
+  activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
   if (activePointers.size >= 2) {
     const points = [...activePointers.values()];
@@ -1599,18 +1476,13 @@ stage.addEventListener("pointermove", event => {
     const distance = pointerDistance(points[0], points[1]);
 
     if (pinchState.distance > 0) {
-      scale = Math.max(
-        0.2,
-        Math.min(3, pinchState.scale * distance / pinchState.distance)
-      );
+      scale = Math.max(0.2, Math.min(3, pinchState.scale * distance / pinchState.distance));
 
       tx = midpoint.x -
-        (pinchState.midpoint.x - pinchState.tx) *
-        (scale / pinchState.scale);
+        (pinchState.midpoint.x - pinchState.tx) * (scale / pinchState.scale);
 
       ty = midpoint.y -
-        (pinchState.midpoint.y - pinchState.ty) *
-        (scale / pinchState.scale);
+        (pinchState.midpoint.y - pinchState.ty) * (scale / pinchState.scale);
 
       scheduleTransform();
     }
@@ -1627,34 +1499,23 @@ stage.addEventListener("pointermove", event => {
 
     tx = pointerStart.tx + dx;
     ty = pointerStart.ty + dy;
-
     scheduleTransform();
   }
 });
 
 function endPointer(event) {
-  // Ignore pointer events that did not start a board gesture.
   if (!activePointers.has(event.pointerId)) return;
 
   const wasDragging = movedDuringGesture;
-
   activePointers.delete(event.pointerId);
 
-  if (wasDragging) {
-    suppressClickUntil = Date.now() + 300;
-  }
+  if (wasDragging) suppressClickUntil = Date.now() + 300;
 
   pinchState = null;
 
   if (activePointers.size === 1) {
     const point = [...activePointers.values()][0];
-
-    pointerStart = {
-      x: point.x,
-      y: point.y,
-      tx,
-      ty
-    };
+    pointerStart = { x: point.x, y: point.y, tx, ty };
   } else {
     pointerStart = null;
   }
@@ -1670,7 +1531,7 @@ function endPointer(event) {
 stage.addEventListener("pointerup", endPointer);
 stage.addEventListener("pointercancel", endPointer);
 
-/* Ignore post-drag clicks, but never suppress photo-tool buttons. */
+/* Don't suppress photo tool buttons after a pan */
 world.addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
   if (button) return;
@@ -1688,16 +1549,12 @@ world.addEventListener("click", event => {
   if (photo) openViewer(fileUrl(photo.storage_path));
 }, true);
 
-/* Mouse wheel zooms the wall toward the cursor */
+/* Mouse wheel zooms toward the cursor */
 stage.addEventListener("wheel", event => {
   event.preventDefault();
 
   const oldScale = scale;
-
-  scale = Math.max(
-    0.2,
-    Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92))
-  );
+  scale = Math.max(0.2, Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92)));
 
   const rect = stage.getBoundingClientRect();
   const px = event.clientX - rect.left;
@@ -1709,6 +1566,14 @@ stage.addEventListener("wheel", event => {
   scheduleTransform();
 }, { passive: false });
 
+/* Recalculate card positions when viewport size changes */
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => render(false), 100);
+});
+
+/* Escape closes viewer and menu */
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeSettingsMenu();
@@ -1716,7 +1581,7 @@ document.addEventListener("keydown", event => {
   }
 });
 
-/* Start the website */
+/* Start website */
 async function init() {
   applyTransform();
 
@@ -1735,6 +1600,7 @@ async function init() {
   db.auth.onAuthStateChange((_event, newSession) => {
     session = newSession;
     updateAuthUI();
+    render(false);
   });
 
   await loadPhotos();
