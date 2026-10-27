@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,7 +10,6 @@
 <style>
 :root {
   --sky: #08172f;
-  --deep: #9ddcff;
   --ink: #e4f2ff;
   --paper: #fffdf8;
 }
@@ -61,6 +61,11 @@ button:hover {
 button:active {
   transform: translateY(2px);
   box-shadow: 0 1px 0 #8cb9d5;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: .6;
 }
 
 button.primary {
@@ -173,7 +178,7 @@ header > * { pointer-events: auto; }
   background: #fff0f3;
 }
 
-/* Photo wall */
+/* Photo wall canvas */
 #stage {
   position: absolute;
   inset: 0;
@@ -196,7 +201,7 @@ header > * { pointer-events: auto; }
   will-change: transform;
 }
 
-/* Static sky decorations */
+/* Static decorations */
 .sky-decoration {
   position: fixed;
   z-index: 0;
@@ -226,12 +231,13 @@ header > * { pointer-events: auto; }
 /* Photo cards */
 .card {
   position: absolute;
-  width: 160px;
+  width: var(--card-width, 160px);
   padding: 8px 8px 10px;
   background: var(--paper);
   border-radius: 5px;
   box-shadow: 0 7px 18px #0005, 0 0 0 1px #ffffff50;
   transform: rotate(var(--rot, 0deg));
+  transform-origin: center center;
   user-select: none;
   contain: layout style;
   will-change: transform, opacity;
@@ -267,12 +273,14 @@ header > * { pointer-events: auto; }
 .card img {
   display: block;
   width: 100%;
-  height: 142px;
-  object-fit: cover;
+  height: auto;
+  aspect-ratio: var(--photo-ratio, 1 / 1);
+  object-fit: contain;
   background: #eaf7fc;
   cursor: zoom-in;
   -webkit-user-drag: none;
   pointer-events: none;
+  border-radius: 2px;
 }
 
 .card .date {
@@ -402,7 +410,7 @@ header > * { pointer-events: auto; }
   border-radius: 12px;
   padding: 11px;
   background: #f8fdff;
-  color: var(--ink);
+  color: #31566a;
 }
 
 .dialog .row {
@@ -493,7 +501,6 @@ header > * { pointer-events: auto; }
   pointer-events: none;
 }
 
-/* Mobile layout */
 @media (max-width: 600px) {
   header {
     padding: 10px;
@@ -520,8 +527,7 @@ header > * { pointer-events: auto; }
 
   #settingsDropdown { min-width: 180px; }
 
-  .card { width: 145px; }
-  .card img { height: 125px; }
+  .card { width: var(--card-width, 145px); }
 
   #zoomhint { display: none; }
 
@@ -568,7 +574,7 @@ header > * { pointer-events: auto; }
   <div id="world"></div>
 </div>
 
-<!-- Static background decorations: these never animate -->
+<!-- Static sky decorations -->
 <div class="sky-decoration sky-cloud" style="left:4%;top:22%">☁️</div>
 <div class="sky-decoration sky-cloud" style="right:4%;bottom:13%">☁️</div>
 <div class="sky-decoration sky-cloud" style="left:34%;bottom:7%;font-size:42px">☁️</div>
@@ -642,6 +648,10 @@ const $ = id => document.getElementById(id);
 const stage = $("stage");
 const world = $("world");
 
+/* Photo dimensions and layout cache */
+const photoDimensions = new Map();
+const photoPositions = new Map();
+
 function status(message) {
   $("status").textContent = message;
 }
@@ -656,98 +666,8 @@ function esc(value) {
   }[char]));
 }
 
-/*
- * Collision-safe layout:
- * Cards occupy slots on a staggered grid. We select the slot
- * nearest the center only when it is far enough from all
- * previously selected slots. This prevents the layout from
- * becoming too dense as more photos are added.
- */
-function cardWidth() {
-  return window.innerWidth <= 600 ? 145 : 160;
-}
-
-function cardHeight() {
-  const mobile = window.innerWidth <= 600;
-  const base = mobile ? 125 : 142;
-
-  // Reserve enough room for the date and the visible owner tools.
-  return base + 8 + 14 + (session ? 37 : 0) + 20;
-}
-
-function spherePosition(index) {
-  const mobile = window.innerWidth <= 600;
-  const width = cardWidth();
-  const height = cardHeight();
-
-  // Add a generous safety margin for rotation, tape, and shadows.
-  const gapX = mobile ? 20 : 22;
-  const gapY = mobile ? 22 : 24;
-  const stepX = width + gapX;
-  const stepY = height + gapY;
-
-  const extent = Math.max(12, Math.ceil(Math.sqrt(index + 1)) * 3 + 6);
-  const candidates = [];
-
-  for (let row = -extent; row <= extent; row++) {
-    for (let col = -extent; col <= extent; col++) {
-      const x = col * stepX + (Math.abs(row) % 2) * (stepX / 2);
-      const y = row * stepY;
-
-      // A circular distance creates a rounded, center-out spread.
-      const distance = x * x + y * y;
-
-      candidates.push({ x, y, distance, row, col });
-    }
-  }
-
-  candidates.sort((a, b) =>
-    a.distance - b.distance ||
-    a.y - b.y ||
-    a.x - b.x
-  );
-
-  const chosen = [];
-  const minDistanceX = width + gapX;
-  const minDistanceY = height + gapY;
-
-  for (const candidate of candidates) {
-    const overlaps = chosen.some(point =>
-      Math.abs(candidate.x - point.x) < minDistanceX &&
-      Math.abs(candidate.y - point.y) < minDistanceY
-    );
-
-    if (!overlaps) chosen.push(candidate);
-    if (chosen.length > index) break;
-  }
-
-  const position = chosen[index] || candidates[index];
-
-  return { x: position.x, y: position.y };
-}
-
-function applyTransform() {
-  world.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
-}
-
-function scheduleTransform() {
-  if (transformFrame) return;
-
-  transformFrame = requestAnimationFrame(() => {
-    transformFrame = 0;
-    applyTransform();
-  });
-}
-
-function updateAuthUI() {
-  $("loginBtn").classList.toggle("hidden", !!session);
-  $("uploadBtn").classList.toggle("hidden", !session);
-  $("titleBtn").classList.toggle("hidden", !session);
-  $("logoutBtn").classList.toggle("hidden", !session);
-  $("settingsMenu").classList.toggle("hidden", !session);
-  document.body.classList.toggle("editing", !!session);
-
-  if (!session) closeSettingsMenu();
+function getPhotoKey(photo) {
+  return String(photo.id);
 }
 
 function fileUrl(path) {
@@ -775,35 +695,280 @@ async function hashFile(file) {
     .join("");
 }
 
-/* Render the wall */
-function render(animate = true) {
+/* --------------------------------------------------
+   PHOTO ORIENTATION
+   Read the actual dimensions of each original image.
+-------------------------------------------------- */
+
+function photoRatio(photo) {
+  return photoDimensions.get(getPhotoKey(photo))?.ratio || 1;
+}
+
+function cardWidth(photo) {
+  const mobile = window.innerWidth <= 600;
+  const base = mobile ? 145 : 160;
+  const ratio = photoRatio(photo);
+
+  if (ratio >= 1.35) return base * 1.22;
+  if (ratio <= 0.75) return base * 0.88;
+  return base;
+}
+
+function cardHeight(photo) {
+  const width = cardWidth(photo);
+  const imageHeight = width / photoRatio(photo);
+
+  // Reserve space for image, date, padding, and owner controls.
+  return imageHeight + 8 + 14 + 18 + (session ? 44 : 0);
+}
+
+async function loadPhotoDimensions() {
+  await Promise.all(photos.map(photo => {
+    const key = getPhotoKey(photo);
+
+    if (photoDimensions.has(key)) return Promise.resolve();
+
+    return new Promise(resolve => {
+      const img = new Image();
+
+      img.onload = () => {
+        const width = img.naturalWidth || 1;
+        const height = img.naturalHeight || 1;
+
+        photoDimensions.set(key, {
+          width,
+          height,
+          ratio: width / height
+        });
+
+        resolve();
+      };
+
+      img.onerror = () => {
+        photoDimensions.set(key, {
+          width: 1,
+          height: 1,
+          ratio: 1
+        });
+        resolve();
+      };
+
+      img.src = fileUrl(photo.storage_path);
+    });
+  }));
+}
+
+/* --------------------------------------------------
+   RANDOMIZED CIRCULAR LAYOUT
+   - Each frame is sized from its photo orientation.
+   - Photos are scattered around a circular cluster.
+   - Collision checks account for rotation and frame size.
+   - Placement remains stable while panning and zooming.
+-------------------------------------------------- */
+
+function randomFromString(value) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  hash >>>= 0;
+
+  return function () {
+    hash += 0x6D2B79F5;
+    let t = hash;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function getFrameBox(photo, x, y, rotation = 0) {
+  const width = cardWidth(photo);
+  const height = cardHeight(photo);
+  const radians = Math.abs(rotation) * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+
+  const rotatedWidth = width * cos + height * sin;
+  const rotatedHeight = height * cos + width * sin;
+
+  return {
+    x, y,
+    left: x - rotatedWidth / 2,
+    right: x + rotatedWidth / 2,
+    top: y - rotatedHeight / 2,
+    bottom: y + rotatedHeight / 2
+  };
+}
+
+function framesOverlap(a, b, gap = 12) {
+  return !(
+    a.right + gap <= b.left ||
+    a.left >= b.right + gap ||
+    a.bottom + gap <= b.top ||
+    a.top >= b.bottom + gap
+  );
+}
+
+function createRandomCircularLayout() {
+  photoPositions.clear();
+
+  if (!photos.length) return;
+
+  const placed = [];
+  const gap = window.innerWidth <= 600 ? 10 : 14;
+
+  // Place photos in their existing order so the layout is stable.
+  photos.forEach((photo, index) => {
+    const rng = randomFromString(getPhotoKey(photo) + "-circle");
+    const rotation = rng() * 6 - 3;
+    const width = cardWidth(photo);
+    const height = cardHeight(photo);
+
+    // The radius grows with the number and size of the photos.
+    const baseRadius = Math.max(
+      width,
+      Math.sqrt(photos.length) * Math.max(width, height) * 0.58
+    );
+
+    let chosen = null;
+
+    // Random candidates are tested from near the center outward.
+    for (let attempt = 0; attempt < 2600; attempt++) {
+      const progress = attempt / 2600;
+      const radius = baseRadius * (1 + progress * 1.5);
+      const angle = rng() * Math.PI * 2;
+      const radial = Math.sqrt(rng()) * radius;
+
+      const x = Math.cos(angle) * radial;
+      const y = Math.sin(angle) * radial;
+      const box = getFrameBox(photo, x, y, rotation);
+
+      if (!placed.some(item => framesOverlap(box, item.box, gap))) {
+        chosen = { x, y, rotation, box };
+        break;
+      }
+    }
+
+    // Fallback spiral for crowded layouts or unusually tall photos.
+    if (!chosen) {
+      for (let ring = 1; ring < 100 && !chosen; ring++) {
+        const radius = baseRadius * (1 + ring * 0.11);
+        const samples = 36 + ring * 2;
+
+        for (let j = 0; j < samples; j++) {
+          const angle = j / samples * Math.PI * 2 + rng() * 0.08;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          const box = getFrameBox(photo, x, y, rotation);
+
+          if (!placed.some(item => framesOverlap(box, item.box, gap))) {
+            chosen = { x, y, rotation, box };
+            break;
+          }
+        }
+      }
+    }
+
+    // Last-resort placement: preserve spacing if the search is exhausted.
+    if (!chosen) {
+      const x = (index + 1) * (width + gap);
+      const y = 0;
+
+      chosen = {
+        x, y, rotation,
+        box: getFrameBox(photo, x, y, rotation)
+      };
+    }
+
+    placed.push({ photo, box: chosen.box });
+    photoPositions.set(getPhotoKey(photo), {
+      x: chosen.x,
+      y: chosen.y,
+      rotation: chosen.rotation
+    });
+  });
+}
+
+/* Pan and zoom transform */
+function applyTransform() {
+  world.style.transform =
+    `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+}
+
+function scheduleTransform() {
+  if (transformFrame) return;
+
+  transformFrame = requestAnimationFrame(() => {
+    transformFrame = 0;
+    applyTransform();
+  });
+}
+
+/* Authentication UI */
+function closeSettingsMenu() {
+  $("settingsDropdown").classList.add("hidden");
+  $("moreMenuBtn").setAttribute("aria-expanded", "false");
+}
+
+function updateAuthUI() {
+  $("loginBtn").classList.toggle("hidden", !!session);
+  $("uploadBtn").classList.toggle("hidden", !session);
+  $("titleBtn").classList.toggle("hidden", !session);
+  $("logoutBtn").classList.toggle("hidden", !session);
+  $("settingsMenu").classList.toggle("hidden", !session);
+  document.body.classList.toggle("editing", !!session);
+
+  if (!session) closeSettingsMenu();
+}
+
+/* Render the photo wall */
+let renderVersion = 0;
+
+async function render(animate = true) {
+  const thisRender = ++renderVersion;
+
+  await loadPhotoDimensions();
+
+  // Ignore an older render if a newer one started while loading images.
+  if (thisRender !== renderVersion) return;
+
+  createRandomCircularLayout();
+
   const fragment = document.createDocumentFragment();
 
   photos.forEach((photo, index) => {
-    const pos = spherePosition(index);
+    const pos = photoPositions.get(getPhotoKey(photo));
+    if (!pos) return;
+
+    const width = cardWidth(photo);
+    const ratio = photoRatio(photo);
+    const height = cardHeight(photo);
     const card = document.createElement("article");
 
     card.className = "card";
-    card.style.left = (pos.x - cardWidth() / 2) + "px";
-    card.style.top = (pos.y - cardHeight() / 2) + "px";
+    card.style.setProperty("--card-width", `${width}px`);
+    card.style.setProperty("--photo-ratio", `${ratio}`);
+    card.style.left = `${pos.x - width / 2}px`;
+    card.style.top = `${pos.y - height / 2}px`;
 
-    // Keep card rotation small so it does not intrude into neighbors.
-    const rotation = ((index * 17) % 5) - 2;
-    card.style.setProperty("--rot", `${rotation}deg`);
+    card.style.setProperty("--rot", `${pos.rotation}deg`);
     card.style.setProperty("--from-x", `${-pos.x}px`);
     card.style.setProperty("--from-y", `${-pos.y}px`);
     card.style.setProperty(
       "--delay",
       animate ? `${Math.min(index * 18, 700)}ms` : "0ms"
     );
-    card.dataset.id = photo.id;
 
+    card.dataset.id = photo.id;
     const url = fileUrl(photo.storage_path);
 
     card.innerHTML = `
       <img src="${esc(url)}" alt="Our memory"
-        loading="lazy" decoding="async" fetchpriority="low"
-        draggable="false">
+        loading="lazy" decoding="async" draggable="false">
       <div class="date">${esc(niceDate(photo.captured_at))}</div>
       <div class="card-tools">
         <button type="button" data-action="view">View</button>
@@ -852,7 +1017,7 @@ async function loadPhotos() {
   }
 
   photos = data || [];
-  render(true);
+  await render(true);
 
   status(
     photos.length
@@ -865,11 +1030,6 @@ async function loadPhotos() {
 function openSettingsMenu() {
   $("settingsDropdown").classList.remove("hidden");
   $("moreMenuBtn").setAttribute("aria-expanded", "true");
-}
-
-function closeSettingsMenu() {
-  $("settingsDropdown").classList.add("hidden");
-  $("moreMenuBtn").setAttribute("aria-expanded", "false");
 }
 
 $("moreMenuBtn").addEventListener("click", event => {
@@ -932,6 +1092,7 @@ function openViewer(url) {
 
   image.addEventListener("dblclick", event => {
     event.preventDefault();
+
     if (viewerScale > 1) resetViewerZoom();
     else {
       viewerScale = 2;
@@ -985,7 +1146,11 @@ $("viewerContent").addEventListener("pointerdown", event => {
   event.preventDefault();
   $("viewerContent").setPointerCapture(event.pointerId);
 
-  viewerPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  viewerPointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
   viewerDragged = false;
 
   if (viewerPointers.size === 1) {
@@ -998,6 +1163,7 @@ $("viewerContent").addEventListener("pointerdown", event => {
     };
   } else if (viewerPointers.size === 2) {
     const points = [...viewerPointers.values()];
+
     viewerGesture = {
       type: "pinch",
       distance: viewerDistance(points[0], points[1]),
@@ -1006,6 +1172,7 @@ $("viewerContent").addEventListener("pointerdown", event => {
       viewerX,
       viewerY
     };
+
     viewerDragged = true;
   }
 });
@@ -1013,7 +1180,11 @@ $("viewerContent").addEventListener("pointerdown", event => {
 $("viewerContent").addEventListener("pointermove", event => {
   if (!viewerPointers.has(event.pointerId)) return;
 
-  viewerPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  viewerPointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
   if (!viewerGesture) return;
 
   if (viewerPointers.size >= 2 && viewerGesture.type === "pinch") {
@@ -1023,7 +1194,9 @@ $("viewerContent").addEventListener("pointermove", event => {
 
     if (viewerGesture.distance > 0) {
       const oldScale = viewerScale;
-      viewerScale = Math.max(1, Math.min(6,
+
+      viewerScale = Math.max(1, Math.min(
+        6,
         viewerGesture.scale * distance / viewerGesture.distance
       ));
 
@@ -1062,6 +1235,7 @@ function endViewerPointer(event) {
 
   if (viewerPointers.size === 1) {
     const point = [...viewerPointers.values()][0];
+
     viewerGesture = {
       type: "drag",
       x: point.x,
@@ -1107,13 +1281,17 @@ $("submitLogin").onclick = async () => {
   status("Signing in…");
 
   try {
-    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    const { data, error } = await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
     if (error) throw error;
 
     session = data.session;
     $("modal").classList.remove("open");
     updateAuthUI();
-    render(false);
+    await render(false);
     await loadPhotos();
     status("Welcome back ☁️");
   } catch (error) {
@@ -1137,7 +1315,7 @@ $("logoutBtn").onclick = async () => {
 
   session = null;
   updateAuthUI();
-  render(false);
+  await render(false);
   status("Signed out. Enjoy the memories 💗");
 };
 
@@ -1183,18 +1361,27 @@ $("fileInput").onchange = async event => {
         }
 
         const extension = (file.name.split(".").pop() || "jpg")
-          .toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "jpg";
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "")
+          .slice(0, 8) || "jpg";
 
         const path =
           `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
         const { error: uploadError } = await db.storage
           .from(BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false });
+          .upload(path, file, {
+            contentType: file.type,
+            upsert: false
+          });
 
-        if (uploadError) throw new Error("Storage upload: " + uploadError.message);
+        if (uploadError) {
+          throw new Error("Storage upload: " + uploadError.message);
+        }
 
-        const modifiedDate = file.lastModified ? new Date(file.lastModified) : null;
+        const modifiedDate = file.lastModified
+          ? new Date(file.lastModified)
+          : null;
 
         const { data: row, error: rowError } = await db
           .from("photos")
@@ -1227,13 +1414,18 @@ $("fileInput").onchange = async event => {
     }
   } finally {
     busy = false;
-    render(true);
+    await render(true);
   }
 
   if (lastError) {
-    status(`Upload finished: added ${added}, duplicates skipped ${skipped}, failed ${failed}. ${lastError}`);
+    status(
+      `Upload finished: added ${added}, duplicates skipped ${skipped}, ` +
+      `failed ${failed}. ${lastError}`
+    );
   } else {
-    status(`Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`);
+    status(
+      `Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`
+    );
   }
 };
 
@@ -1248,7 +1440,11 @@ async function editDate(photo) {
     ? new Date(photo.captured_at).toISOString().slice(0, 10)
     : "";
 
-  const input = prompt("Enter the photo's modified date (YYYY-MM-DD):", current);
+  const input = prompt(
+    "Enter the photo's modified date (YYYY-MM-DD):",
+    current
+  );
+
   if (input === null) return;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
@@ -1273,7 +1469,7 @@ async function editDate(photo) {
   }
 
   photo.captured_at = date.toISOString();
-  render(false);
+  await render(false);
   status("Photo date updated ✨");
 }
 
@@ -1284,7 +1480,9 @@ async function removePhoto(photo) {
     return;
   }
 
-  if (!confirm("Remove this memory from the wall? This cannot be undone.")) return;
+  if (!confirm("Remove this memory from the wall? This cannot be undone.")) {
+    return;
+  }
 
   busy = true;
 
@@ -1300,7 +1498,9 @@ async function removePhoto(photo) {
       .remove([photo.storage_path]);
 
     photos = photos.filter(item => item.id !== photo.id);
-    render(false);
+    photoDimensions.delete(getPhotoKey(photo));
+
+    await render(false);
 
     status(storageError
       ? "Photo record removed, but storage cleanup may need attention."
@@ -1359,14 +1559,21 @@ $("deleteAllBtn").addEventListener("click", async () => {
     }
 
     photos = photos.filter(photo => !ids.includes(photo.id));
-    render(false);
+
+    for (const photo of photosToDelete) {
+      photoDimensions.delete(getPhotoKey(photo));
+    }
+
+    await render(false);
 
     let storageFailures = 0;
     let firstStorageError = "";
 
     for (let i = 0; i < paths.length; i += 100) {
       const batch = paths.slice(i, i + 100);
-      const { error: storageError } = await db.storage.from(BUCKET).remove(batch);
+      const { error: storageError } = await db.storage
+        .from(BUCKET)
+        .remove(batch);
 
       if (storageError) {
         storageFailures += batch.length;
@@ -1375,7 +1582,10 @@ $("deleteAllBtn").addEventListener("click", async () => {
     }
 
     if (storageFailures) {
-      status(`The wall is cleared, but storage cleanup failed for one or more batches. Supabase: ${firstStorageError}`);
+      status(
+        `The wall is cleared, but storage cleanup failed for one or more ` +
+        `batches. Supabase: ${firstStorageError}`
+      );
     } else {
       status(`All ${photosToDelete.length} photos deleted. Your wall is clear ☁️`);
     }
@@ -1424,7 +1634,10 @@ stage.addEventListener("pointerdown", event => {
   if (event.target.closest("button, input, a, select, textarea")) return;
 
   stage.setPointerCapture(event.pointerId);
-  activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  activePointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
 
   if (activePointers.size === 1) {
     pointerStart = {
@@ -1456,7 +1669,10 @@ stage.addEventListener("pointerdown", event => {
 stage.addEventListener("pointermove", event => {
   if (!activePointers.has(event.pointerId)) return;
 
-  activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  activePointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
 
   if (activePointers.size >= 2) {
     const points = [...activePointers.values()];
@@ -1476,7 +1692,10 @@ stage.addEventListener("pointermove", event => {
     const distance = pointerDistance(points[0], points[1]);
 
     if (pinchState.distance > 0) {
-      scale = Math.max(0.2, Math.min(3, pinchState.scale * distance / pinchState.distance));
+      scale = Math.max(
+        0.2,
+        Math.min(3, pinchState.scale * distance / pinchState.distance)
+      );
 
       tx = midpoint.x -
         (pinchState.midpoint.x - pinchState.tx) * (scale / pinchState.scale);
@@ -1531,7 +1750,7 @@ function endPointer(event) {
 stage.addEventListener("pointerup", endPointer);
 stage.addEventListener("pointercancel", endPointer);
 
-/* Don't suppress photo tool buttons after a pan */
+/* Open photos on click, but not after a pan */
 world.addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
   if (button) return;
@@ -1554,7 +1773,10 @@ stage.addEventListener("wheel", event => {
   event.preventDefault();
 
   const oldScale = scale;
-  scale = Math.max(0.2, Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92)));
+  scale = Math.max(
+    0.2,
+    Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92))
+  );
 
   const rect = stage.getBoundingClientRect();
   const px = event.clientX - rect.left;
@@ -1566,11 +1788,12 @@ stage.addEventListener("wheel", event => {
   scheduleTransform();
 }, { passive: false });
 
-/* Recalculate card positions when viewport size changes */
+/* Recalculate on viewport changes */
 let resizeTimer;
+
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => render(false), 100);
+  resizeTimer = setTimeout(() => render(false), 180);
 });
 
 /* Escape closes viewer and menu */
@@ -1578,6 +1801,7 @@ document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
     closeSettingsMenu();
     closeViewer();
+    $("modal").classList.remove("open");
   }
 });
 
