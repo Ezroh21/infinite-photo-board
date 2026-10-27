@@ -26,7 +26,7 @@ html, body {
 }
 
 body {
-  background-color: var(--sky);
+  background-color: #08172f;
   background-image:
     radial-gradient(2px 2px at 8% 18%, #fff 98%, transparent),
     radial-gradient(2px 2px at 19% 72%, #a9dcff 98%, transparent),
@@ -178,6 +178,7 @@ header > * { pointer-events: auto; }
   background: #fff0f3;
 }
 
+/* Photo wall canvas */
 #stage {
   position: absolute;
   inset: 0;
@@ -200,6 +201,7 @@ header > * { pointer-events: auto; }
   will-change: transform;
 }
 
+/* Static decorations */
 .sky-decoration {
   position: fixed;
   z-index: 0;
@@ -226,20 +228,20 @@ header > * { pointer-events: auto; }
   opacity: .5;
 }
 
-/* Photo frames */
+/* Photo cards */
 .card {
   position: absolute;
   width: var(--card-width, 160px);
-  padding: 7px 7px 9px;
+  padding: 8px 8px 10px;
   background: var(--paper);
   border-radius: 5px;
-  box-shadow: 0 5px 13px #0005, 0 0 0 1px #ffffff50;
+  box-shadow: 0 7px 18px #0005, 0 0 0 1px #ffffff50;
   transform: rotate(var(--rot, 0deg));
   transform-origin: center center;
   user-select: none;
   contain: layout style;
   will-change: transform, opacity;
-  animation: bloom .55s cubic-bezier(.18,.75,.28,1) both;
+  animation: bloom .65s cubic-bezier(.18,.75,.28,1) both;
   animation-delay: var(--delay, 0ms);
 }
 
@@ -249,8 +251,8 @@ header > * { pointer-events: auto; }
   top: -7px;
   left: 50%;
   transform: translateX(-50%) rotate(-3deg);
-  width: 48px;
-  height: 14px;
+  width: 54px;
+  height: 16px;
   background: #a9e4f2bb;
   border-radius: 2px;
   z-index: 2;
@@ -272,7 +274,7 @@ header > * { pointer-events: auto; }
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: var(--photo-ratio, 1);
+  aspect-ratio: var(--photo-ratio, 1 / 1);
   object-fit: contain;
   background: #eaf7fc;
   cursor: zoom-in;
@@ -285,7 +287,7 @@ header > * { pointer-events: auto; }
   font-size: 11px;
   color: #7899a8;
   text-align: center;
-  margin-top: 6px;
+  margin-top: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -297,11 +299,11 @@ header > * { pointer-events: auto; }
   gap: 5px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: 7px;
 }
 
 .card .card-tools button {
-  padding: 5px 7px;
+  padding: 5px 8px;
   font-size: 10px;
   box-shadow: none;
   background: #e8f7ff;
@@ -431,6 +433,7 @@ header > * { pointer-events: auto; }
   opacity: 0;
 }
 
+/* Enlarged photo viewer */
 #viewer {
   display: none;
   position: fixed;
@@ -571,6 +574,7 @@ header > * { pointer-events: auto; }
   <div id="world"></div>
 </div>
 
+<!-- Static sky decorations -->
 <div class="sky-decoration sky-cloud" style="left:4%;top:22%">☁️</div>
 <div class="sky-decoration sky-cloud" style="right:4%;bottom:13%">☁️</div>
 <div class="sky-decoration sky-cloud" style="left:34%;bottom:7%;font-size:42px">☁️</div>
@@ -644,6 +648,7 @@ const $ = id => document.getElementById(id);
 const stage = $("stage");
 const world = $("world");
 
+/* Photo dimensions and layout cache */
 const photoDimensions = new Map();
 const photoPositions = new Map();
 
@@ -671,7 +676,6 @@ function fileUrl(path) {
 
 function niceDate(value) {
   if (!value) return "Date unknown";
-
   const date = new Date(value);
   if (isNaN(date.getTime())) return "Date unknown";
 
@@ -691,7 +695,7 @@ async function hashFile(file) {
     .join("");
 }
 
-/* Image orientation and frame dimensions */
+/* Photo orientation */
 function photoRatio(photo) {
   return photoDimensions.get(getPhotoKey(photo))?.ratio || 1;
 }
@@ -703,7 +707,6 @@ function cardWidth(photo) {
 
   if (ratio >= 1.35) return base * 1.22;
   if (ratio <= 0.75) return base * 0.88;
-
   return base;
 }
 
@@ -711,8 +714,8 @@ function cardHeight(photo) {
   const width = cardWidth(photo);
   const imageHeight = width / photoRatio(photo);
 
-  // Frame padding, date, and optional editing controls.
-  return imageHeight + 7 + 9 + 6 + 14 + (session ? 38 : 0);
+  // Account for image, date, padding, and owner controls.
+  return imageHeight + 8 + 14 + 18 + (session ? 44 : 0);
 }
 
 async function loadPhotoDimensions() {
@@ -751,7 +754,7 @@ async function loadPhotoDimensions() {
   }));
 }
 
-/* Deterministic random generator */
+/* Randomness that stays consistent between renders */
 function randomFromString(value) {
   let hash = 2166136261;
 
@@ -767,12 +770,11 @@ function randomFromString(value) {
     let t = hash;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-/* Calculate the true bounding box, including card rotation */
+/* Calculate each rotated frame's bounding box */
 function getFrameBox(photo, x, y, rotation = 0) {
   const width = cardWidth(photo);
   const height = cardHeight(photo);
@@ -784,8 +786,7 @@ function getFrameBox(photo, x, y, rotation = 0) {
   const rotatedHeight = height * cos + width * sin;
 
   return {
-    x,
-    y,
+    x, y,
     left: x - rotatedWidth / 2,
     right: x + rotatedWidth / 2,
     top: y - rotatedHeight / 2,
@@ -793,7 +794,8 @@ function getFrameBox(photo, x, y, rotation = 0) {
   };
 }
 
-function framesOverlap(a, b, gap = 6) {
+/* Strict rectangular collision check with a very small gap */
+function framesOverlap(a, b, gap = 4) {
   return !(
     a.right + gap <= b.left ||
     a.left >= b.right + gap ||
@@ -802,51 +804,47 @@ function framesOverlap(a, b, gap = 6) {
   );
 }
 
-/*
-  TIGHT RANDOM CIRCULAR LAYOUT
+/* --------------------------------------------------
+   TIGHT RANDOMIZED CIRCULAR LAYOUT
 
-  The algorithm:
-  1. Tries positions close to the center first.
-  2. Uses a smaller gap between frames.
-  3. Checks actual frame sizes and rotation.
-  4. Expands outward only when nearby positions are occupied.
-  5. Uses a stable random seed so photos don't jump on every render.
-*/
+   - Keeps portrait and landscape frame dimensions.
+   - Searches close to the center first.
+   - Uses a small 2–4px gap between rotated frames.
+   - Expands only when a position cannot be found.
+   - Keeps positions stable during pan and zoom.
+-------------------------------------------------- */
+
 function createRandomCircularLayout() {
   photoPositions.clear();
 
   if (!photos.length) return;
 
   const placed = [];
-  const mobile = window.innerWidth <= 600;
-  const gap = mobile ? 5 : 7;
-
-  const largestDimension = Math.max(
-    ...photos.map(photo => Math.max(cardWidth(photo), cardHeight(photo)))
-  );
-
-  const baseRadius = Math.max(
-    largestDimension * 0.55,
-    Math.sqrt(photos.length) * largestDimension * 0.34
-  );
+  const gap = window.innerWidth <= 600 ? 2 : 4;
 
   photos.forEach((photo, index) => {
     const rng = randomFromString(getPhotoKey(photo) + "-circle");
-    const rotation = rng() * 5 - 2.5;
+    const rotation = rng() * 4 - 2;
+    const width = cardWidth(photo);
+    const height = cardHeight(photo);
+
+    // A compact radius helps keep the wall visually clustered.
+    const baseRadius = Math.max(
+      Math.max(width, height) * 0.65,
+      Math.sqrt(photos.length) * Math.max(width, height) * 0.43
+    );
+
     let chosen = null;
 
-    // Prefer compact positions near the center.
+    // Search close to the center first, expanding gradually.
     for (let attempt = 0; attempt < 5000; attempt++) {
       const progress = attempt / 5000;
-      const radius = baseRadius * (0.35 + progress * 1.15);
+      const radius = baseRadius * (0.42 + progress * 0.95);
       const angle = rng() * Math.PI * 2;
       const radial = Math.sqrt(rng()) * radius;
 
-      const jitterX = (rng() - 0.5) * 14;
-      const jitterY = (rng() - 0.5) * 14;
-
-      const x = Math.cos(angle) * radial + jitterX;
-      const y = Math.sin(angle) * radial + jitterY;
+      const x = Math.cos(angle) * radial;
+      const y = Math.sin(angle) * radial;
       const box = getFrameBox(photo, x, y, rotation);
 
       if (!placed.some(item => framesOverlap(box, item.box, gap))) {
@@ -855,22 +853,20 @@ function createRandomCircularLayout() {
       }
     }
 
-    // Expand in small rings only when the compact area is full.
+    // Search compact rings before expanding further.
     if (!chosen) {
-      const ringStep = mobile ? 18 : 22;
-
-      for (let ring = 0; ring < 160 && !chosen; ring++) {
-        const radius = baseRadius * 0.45 + ring * ringStep;
-        const samples = Math.max(
-          48,
-          Math.ceil((2 * Math.PI * radius) / 18)
-        );
+      for (let ring = 1; ring < 160 && !chosen; ring++) {
+        const radius = baseRadius * (0.65 + ring * 0.045);
+        const samples = 48 + ring * 3;
         const angleOffset = rng() * Math.PI * 2;
 
         for (let j = 0; j < samples; j++) {
-          const angle = j / samples * Math.PI * 2 + angleOffset;
-          const x = Math.cos(angle) * radius + (rng() - 0.5) * 8;
-          const y = Math.sin(angle) * radius + (rng() - 0.5) * 8;
+          const angle =
+            angleOffset + (j / samples) * Math.PI * 2;
+
+          const jitter = (rng() - 0.5) * Math.min(12, gap + 8);
+          const x = Math.cos(angle) * radius + jitter;
+          const y = Math.sin(angle) * radius + jitter;
           const box = getFrameBox(photo, x, y, rotation);
 
           if (!placed.some(item => framesOverlap(box, item.box, gap))) {
@@ -881,15 +877,20 @@ function createRandomCircularLayout() {
       }
     }
 
-    // Safety fallback: keep expanding until a non-overlapping spot is found.
+    // Last resort: continue outward until a free position is found.
+    // This avoids placing frames on top of one another.
     if (!chosen) {
       let ring = 160;
 
       while (!chosen) {
-        const radius = baseRadius * 0.45 + ring * 22;
+        const radius = baseRadius * (0.65 + ring * 0.045);
+        const samples = 48 + ring * 3;
+        const angleOffset = rng() * Math.PI * 2;
 
-        for (let j = 0; j < 180; j++) {
-          const angle = j / 180 * Math.PI * 2;
+        for (let j = 0; j < samples; j++) {
+          const angle =
+            angleOffset + (j / samples) * Math.PI * 2;
+
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
           const box = getFrameBox(photo, x, y, rotation);
@@ -914,7 +915,7 @@ function createRandomCircularLayout() {
   });
 }
 
-/* Pan and zoom */
+/* Pan and zoom transform */
 function applyTransform() {
   world.style.transform =
     `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
@@ -946,7 +947,7 @@ function updateAuthUI() {
   if (!session) closeSettingsMenu();
 }
 
-/* Render photos */
+/* Render the photo wall */
 let renderVersion = 0;
 
 async function render(animate = true) {
@@ -974,6 +975,7 @@ async function render(animate = true) {
     card.style.setProperty("--photo-ratio", `${ratio}`);
     card.style.left = `${pos.x - width / 2}px`;
     card.style.top = `${pos.y - height / 2}px`;
+
     card.style.setProperty("--rot", `${pos.rotation}deg`);
     card.style.setProperty("--from-x", `${-pos.x}px`);
     card.style.setProperty("--from-y", `${-pos.y}px`);
@@ -1067,7 +1069,7 @@ document.addEventListener("click", event => {
   if (!$("settingsMenu").contains(event.target)) closeSettingsMenu();
 });
 
-/* Photo viewer */
+/* Individual photo viewer */
 let viewerScale = 1;
 let viewerX = 0;
 let viewerY = 0;
@@ -1226,7 +1228,6 @@ $("viewerContent").addEventListener("pointermove", event => {
 
       viewerX = px - (px - viewerGesture.viewerX) * ratio;
       viewerY = py - (py - viewerGesture.viewerY) * ratio;
-
       updateViewerTransform();
     }
 
@@ -1354,7 +1355,6 @@ $("fileInput").onchange = async event => {
   }
 
   busy = true;
-
   let added = 0;
   let skipped = 0;
   let failed = 0;
@@ -1374,7 +1374,6 @@ $("fileInput").onchange = async event => {
         }
 
         status(`Adding memory ${i + 1} of ${files.length}…`);
-
         const digest = await hashFile(file);
 
         if (photos.some(photo => photo.content_sha256 === digest)) {
@@ -1382,6 +1381,8 @@ $("fileInput").onchange = async event => {
           continue;
         }
 
+        // Read original dimensions so new photos have the correct
+        // orientation as soon as they are added.
         let imageWidth = null;
         let imageHeight = null;
 
@@ -1390,8 +1391,8 @@ $("fileInput").onchange = async event => {
           imageWidth = bitmap.width;
           imageHeight = bitmap.height;
           bitmap.close();
-        } catch {
-          // Rendering can still determine dimensions if bitmap decoding fails.
+        } catch (dimensionError) {
+          console.warn("Could not read image dimensions:", dimensionError);
         }
 
         const extension = (file.name.split(".").pop() || "jpg")
@@ -1677,7 +1678,6 @@ stage.addEventListener("pointerdown", event => {
   if (event.target.closest("button, input, a, select, textarea")) return;
 
   stage.setPointerCapture(event.pointerId);
-
   activePointers.set(event.pointerId, {
     x: event.clientX,
     y: event.clientY
@@ -1808,7 +1808,7 @@ world.addEventListener("click", event => {
   const card = event.target.closest(".card");
   if (!card) return;
 
-  const photo = photos.find(item => String(item.id) === card.dataset.id);
+  const photo = photos.find(item => item.id === card.dataset.id);
   if (photo) openViewer(fileUrl(photo.storage_path));
 }, true);
 
@@ -1817,7 +1817,6 @@ stage.addEventListener("wheel", event => {
   event.preventDefault();
 
   const oldScale = scale;
-
   scale = Math.max(
     0.2,
     Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92))
@@ -1833,7 +1832,7 @@ stage.addEventListener("wheel", event => {
   scheduleTransform();
 }, { passive: false });
 
-/* Recalculate layout when the viewport changes */
+/* Recalculate on viewport changes */
 let resizeTimer;
 
 window.addEventListener("resize", () => {
