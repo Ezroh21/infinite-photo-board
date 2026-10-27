@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -78,20 +79,38 @@ header>* { pointer-events:auto; }
 }
 #settingsDropdown button:hover { transform:none;box-shadow:none;background:#fff0f3; }
 
-/* Capacity meter */
+/* Capacity meter — bottom-left, unobtrusive */
 #capacityBar {
-  position:fixed;z-index:11;top:91px;left:50%;transform:translateX(-50%);
-  width:min(320px,calc(100vw - 32px));padding:9px 12px 10px;
-  border-radius:15px;background:#102849ef;border:1px solid #9ddcff55;
-  box-shadow:0 5px 20px #0003;backdrop-filter:blur(10px);
+  position:fixed;
+  z-index:11;
+  left:12px;
+  bottom:12px;
+  top:auto;
+  transform:none;
+  width:min(220px,calc(100vw - 24px));
+  padding:8px 10px;
+  border-radius:12px;
+  background:#102849df;
+  border:1px solid #9ddcff44;
+  box-shadow:0 4px 14px #0003;
+  backdrop-filter:blur(8px);
   pointer-events:none;
 }
 #capacityInfo {
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  margin-bottom:7px;font-size:11px;color:#e4f2ff;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  margin-bottom:6px;
+  font-size:10px;
+  color:#e4f2ff;
 }
+#capacityLabel { display:none; }
 #capacityCount { font-weight:800;white-space:nowrap; }
-#capacityTrack { width:100%;height:8px;overflow:hidden;border-radius:999px;background:#ffffff25; }
+#capacityTrack {
+  width:100%;height:6px;overflow:hidden;
+  border-radius:999px;background:#ffffff25;
+}
 #capacityFill {
   width:0;height:100%;border-radius:inherit;
   background:linear-gradient(90deg,#36d399 0%,#a3e635 35%,#facc15 65%,#fb923c 82%,#ef4444 100%);
@@ -226,8 +245,17 @@ header>* { pointer-events:auto; }
   #moreMenuBtn { width:34px;min-width:34px;height:34px;padding:0;font-size:21px; }
   #settingsDropdown { min-width:180px; }
   .card { width:var(--card-width,145px); }
-  #capacityBar { top:62px;width:min(260px,calc(100vw - 24px));padding:7px 10px 8px; }
-  #capacityInfo { font-size:10px; }
+
+  /* Keep the capacity meter tucked into the bottom-left on mobile too */
+  #capacityBar {
+    left:8px;
+    bottom:8px;
+    top:auto;
+    transform:none;
+    width:min(180px,calc(100vw - 16px));
+    padding:7px 9px;
+  }
+  #capacityInfo { font-size:10px;margin-bottom:5px; }
   #zoomhint { display:none; }
   #viewerHint { max-width:90vw;white-space:normal;line-height:1.4; }
 }
@@ -381,16 +409,15 @@ function niceDate(value) {
   });
 }
 
+/* Update the count and progress bar without showing remaining-photo text. */
 function updateCapacityBar() {
   const count = photos.length;
-  const remaining = Math.max(0,MAX_PHOTOS-count);
-  const percentage = Math.min(100,count/MAX_PHOTOS*100);
+  const percentage = Math.min(100, (count / MAX_PHOTOS) * 100);
+
   $("capacityFill").style.width = `${percentage}%`;
   $("capacityCount").textContent = `${count} / ${MAX_PHOTOS} photos`;
-  $("capacityLabel").textContent = remaining === 0
-    ? "Photo board is full!"
-    : `${remaining} more ${remaining === 1 ? "photo" : "photos"} available`;
-  $("capacityTrack").setAttribute("aria-valuenow",String(count));
+  $("capacityLabel").textContent = "Photo board capacity";
+  $("capacityTrack").setAttribute("aria-valuenow", String(count));
 }
 
 async function hashFile(file) {
@@ -442,7 +469,6 @@ function cardHeight(photo) {
 }
 
 async function loadPhotoDimensions() {
-  /* Prefer database dimensions; only inspect legacy rows without dimensions. */
   const missing = photos.filter(photo =>
     !photoDimensions.has(getPhotoKey(photo)) &&
     !(Number(photo.width)>0 && Number(photo.height)>0)
@@ -516,8 +542,8 @@ function framesOverlap(a,b,gap=4) {
 }
 
 /*
- * Spatial hash: only check cards in nearby grid cells rather than every
- * previously placed card. This greatly reduces collision work as the wall grows.
+ * Spatial hash: check nearby cards only, rather than every card already placed.
+ * This reduces collision-checking work as the wall grows.
  */
 function createRandomCircularLayout() {
   photoPositions.clear();
@@ -597,7 +623,6 @@ function createRandomCircularLayout() {
       }
     }
 
-    /* Deterministic outward fallback; grid keeps each test local. */
     if(!chosen){
       for(let ring=180;!chosen;ring++){
         const radius=baseRadius*(.65+ring*.045);
@@ -645,7 +670,7 @@ function updateAuthUI() {
   if(!session)closeSettingsMenu();
 }
 
-/* Render all photo cards; image requests are lazy and use thumbnails. */
+/* Render cards with lazy-loaded thumbnail images. */
 async function render(animate=true) {
   const version=++renderVersion;
   updateCapacityBar();
@@ -950,7 +975,6 @@ $("fileInput").onchange=async event=>{
         console.error("Photo upload failed:",error);
         failed++;
         lastError=error?.message||String(error);
-        /* Best-effort cleanup if upload succeeded but a later step failed. */
         const cleanup=[];
         if(originalPath)cleanup.push(originalPath);
         if(thumbPath)cleanup.push(thumbPath);
@@ -1190,7 +1214,6 @@ async function init(){
   db.auth.onAuthStateChange((_event,newSession)=>{
     session=newSession;
     updateAuthUI();
-    /* Avoid database work directly inside the auth callback. */
     setTimeout(()=>loadPhotos(),0);
   });
 
