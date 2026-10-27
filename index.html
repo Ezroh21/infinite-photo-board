@@ -135,8 +135,28 @@ $("fileInput").onchange=async e=>{
    if(upErr)throw upErr;
    const pos=localPosition(photos.length+added);
    const modified=file.lastModified?new Date(file.lastModified):new Date();
-   const {data,error:rowErr}=await db.from("photos").insert({storage_path:path,original_filename:file.name,caption:file.name.replace(/\.[^.]+$/,""),captured_at:modified.toISOString(),x:pos.x,y:pos.y,width:null,height:null,content_sha256:digest}).select().single();
-   if(rowErr){await db.storage.from(BUCKET).remove([path]);throw rowErr}
+  const { data: row, error: rowErr } = await db
+  .from("photos")
+  .insert({
+    storage_path: path,
+    original_filename: file.name,
+    caption: file.name.replace(/\.[^.]+$/, ""),
+    captured_at: modified.toISOString(),
+    x: pos.x,
+    y: pos.y,
+    width: null,
+    height: null,
+    content_sha256: digest
+  })
+  .select()
+  .single();
+   if (rowErr) {
+  await db.storage.from(BUCKET).remove([path]);
+  throw new Error("Database insert: " + rowErr.message);
+}
+
+photos.push(row);
+added++;
    photos.push(row);added++;
  }catch(err){
   console.error("Photo upload failed:", err);
