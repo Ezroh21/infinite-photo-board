@@ -1,0 +1,6 @@
+-- Optional hardening note for later:
+-- The current setup permits any authenticated account to write. Since public sign-ups
+-- are disabled and you create accounts manually, that is a useful first guard, but
+-- before real use we should explicitly restrict write policies to the two intended
+-- accounts. Do not run a guessed email-based policy until the two account emails are
+-- known and the exact current policies have been reviewed.
