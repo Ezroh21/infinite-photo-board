@@ -146,10 +146,12 @@ $("fileInput").onchange=async e=>{
  }
  busy=false;render();
  
+
 status(lastError
   ? `Upload failed: ${lastError}`
   : `Done 💗 Added ${added}; duplicate(s) skipped ${skipped}; failed ${failed}.`
 );
+};
 
 async function editDate(p){
  const current=p.captured_at?new Date(p.captured_at).toISOString().slice(0,10):"";
