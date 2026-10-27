@@ -120,7 +120,7 @@ $("fileInput").onchange=async e=>{
  const files=Array.from(e.target.files||[]);e.target.value="";
  if(!session||!files.length)return;
  if(busy)return status("An upload is already running…");
- busy=true;let added=0,skipped=0,failed=0;
+ busy=true;let added=0,skipped=0,failed=0,lastError="";
  for(let i=0;i<files.length;i++){
   const file=files[i];
   if(!file.type.startsWith("image/")){failed++;continue}
@@ -138,15 +138,19 @@ $("fileInput").onchange=async e=>{
    const {data,error:rowErr}=await db.from("photos").insert({storage_path:path,original_filename:file.name,caption:file.name.replace(/\.[^.]+$/,""),captured_at:modified.toISOString(),x:pos.x,y:pos.y,width:null,height:null,content_sha256:digest}).select().single();
    if(rowErr){await db.storage.from(BUCKET).remove([path]);throw rowErr}
    photos.push(row);added++;
-  }catch(err){
+ }catch(err){
   console.error("Photo upload failed:", err);
   failed++;
-  status("Upload failed: " + (err.message || JSON.stringify(err)));
+  lastError = err?.message || String(err);
 }
  }
  busy=false;render();
- status(`Done 💗 Added ${added}; duplicate(s) skipped ${skipped}; failed ${failed}.`);
-};
+ 
+status(lastError
+  ? `Upload failed: ${lastError}`
+  : `Done 💗 Added ${added}; duplicate(s) skipped ${skipped}; failed ${failed}.`
+);
+
 async function editDate(p){
  const current=p.captured_at?new Date(p.captured_at).toISOString().slice(0,10):"";
  const input=prompt("Enter the memory date (YYYY-MM-DD):",current);if(input===null)return;
