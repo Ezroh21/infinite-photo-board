@@ -6,203 +6,437 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#dff4ff">
 <title>Our Little Photo Universe ☁️</title>
+
 <style>
 :root {
-  --sky:#dff4ff;
-  --blue:#9cddf8;
-  --deep:#236785;
-  --ink:#31566a;
-  --paper:#fffdf8;
-  --pink:#ffdce9;
-  --yellow:#fff0b8;
+  --sky: #dff4ff;
+  --deep: #236785;
+  --ink: #31566a;
+  --paper: #fffdf8;
 }
-* { box-sizing:border-box; }
-html,body {
-  margin:0;width:100%;height:100%;overflow:hidden;
-  font-family:Nunito,"Trebuchet MS",system-ui,sans-serif;
-  color:var(--ink);
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Trebuchet MS", system-ui, sans-serif;
+  color: var(--ink);
 }
+
 body {
-  background:linear-gradient(180deg,#dff5ff 0%,#f5fbff 58%,#fff7fb 100%);
+  background: linear-gradient(
+    180deg,
+    #dff5ff 0%,
+    #f5fbff 58%,
+    #fff7fb 100%
+  );
 }
-button,input { font:inherit; }
+
+button, input { font: inherit; }
+
 button {
-  cursor:pointer;border:0;border-radius:999px;padding:10px 15px;
-  background:#fff;color:var(--deep);box-shadow:0 4px 0 #b8dff0;
-  transition:transform .15s,box-shadow .15s;
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 15px;
+  background: white;
+  color: var(--deep);
+  box-shadow: 0 4px 0 #b8dff0;
+  transition: transform .15s, box-shadow .15s;
 }
-button:hover { transform:translateY(-2px);box-shadow:0 6px 0 #b8dff0; }
-button:active { transform:translateY(2px);box-shadow:0 1px 0 #b8dff0; }
-button.primary { background:#8dd8f7;color:#164e69; }
-button.danger { background:#ffe0e8;color:#8c3452; }
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #b8dff0;
+}
+
+button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b8dff0;
+}
+
+button.primary {
+  background: #8dd8f7;
+  color: #164e69;
+}
+
+button.danger {
+  background: #ffe0e8;
+  color: #8c3452;
+}
 
 header {
-  position:fixed;z-index:10;top:0;left:0;right:0;
-  display:flex;gap:10px;align-items:center;justify-content:space-between;
-  padding:14px 16px;pointer-events:none;
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  pointer-events: none;
 }
-header>* { pointer-events:auto; }
+
+header > * { pointer-events: auto; }
+
 .brand {
-  background:#ffffffd9;backdrop-filter:blur(10px);
-  border:1px solid #fff;border-radius:22px;padding:8px 14px;
-  box-shadow:0 5px 18px #8ecce933;min-width:0;
+  background: #ffffffd9;
+  backdrop-filter: blur(10px);
+  border: 1px solid white;
+  border-radius: 22px;
+  padding: 8px 14px;
+  box-shadow: 0 5px 18px #8ecce933;
+  min-width: 0;
 }
+
 .brand h1 {
-  font-size:clamp(16px,3.8vw,23px);margin:0;font-weight:900;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size: clamp(16px, 3.8vw, 23px);
+  margin: 0;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.brand p { font-size:12px;margin:2px 0 0;color:#6a9ab0; }
+
+.brand p {
+  font-size: 12px;
+  margin: 2px 0 0;
+  color: #6a9ab0;
+}
+
 .actions {
-  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-  justify-content:flex-end;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
-.actions button { font-size:13px; }
 
+.actions button { font-size: 13px; }
+
+/* The zoomable universe */
 #stage {
-  position:absolute;inset:0;overflow:hidden;touch-action:none;
-  cursor:grab;isolation:isolate;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  isolation: isolate;
 }
-#stage.dragging { cursor:grabbing; }
-#world {
-  position:absolute;left:0;top:0;transform-origin:0 0;
-  width:1px;height:1px;will-change:transform;
-}
-.cloud {
-  position:fixed;opacity:.42;pointer-events:none;font-size:54px;
-  filter:drop-shadow(0 5px 4px #93cbe833);
-  animation:float 8s ease-in-out infinite;
-}
-.cloud.c1 { left:8%;top:22%; }
-.cloud.c2 { right:8%;bottom:16%;animation-delay:-3s; }
-.cloud.c3 { right:23%;top:19%;font-size:34px;animation-delay:-5s; }
-@keyframes float { 50% { transform:translateY(-12px); } }
 
+#stage.dragging { cursor: grabbing; }
+
+#world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* Background decorations */
+.cloud {
+  position: fixed;
+  opacity: .42;
+  pointer-events: none;
+  font-size: 54px;
+  filter: drop-shadow(0 5px 4px #93cbe833);
+  animation: float 8s ease-in-out infinite;
+}
+
+.cloud.c1 { left: 8%; top: 22%; }
+.cloud.c2 { right: 8%; bottom: 16%; animation-delay: -3s; }
+.cloud.c3 { right: 23%; top: 19%; font-size: 34px; animation-delay: -5s; }
+
+@keyframes float {
+  50% { transform: translateY(-12px); }
+}
+
+/* Photos */
 .card {
-  position:absolute;width:174px;padding:9px 9px 12px;
-  background:var(--paper);border-radius:4px;
-  box-shadow:0 7px 18px #4d83952b;
-  transform:rotate(var(--rot,0deg));
-  user-select:none;touch-action:pan-y;contain:layout style;
+  position: absolute;
+  width: 160px;
+  padding: 8px 8px 10px;
+  background: var(--paper);
+  border-radius: 4px;
+  box-shadow: 0 7px 18px #4d83952b;
+  transform: rotate(var(--rot, 0deg));
+  user-select: none;
+  contain: layout style;
+  will-change: transform, opacity;
+  animation: bloom .9s cubic-bezier(.18,.75,.28,1) both;
+  animation-delay: var(--delay, 0ms);
 }
+
 .card:before {
-  content:"";position:absolute;top:-7px;left:50%;
-  transform:translateX(-50%) rotate(-3deg);
-  width:54px;height:16px;background:#a9e4f2bb;
-  border-radius:2px;z-index:2;
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  width: 54px;
+  height: 16px;
+  background: #a9e4f2bb;
+  border-radius: 2px;
+  z-index: 2;
 }
-.card img,.card video {
-  display:block;width:100%;height:150px;object-fit:cover;
-  background:#eaf7fc;pointer-events:none;
+
+/*
+  Every picture begins at the center and travels outward
+  to its assigned position in the photo sphere.
+*/
+@keyframes bloom {
+  from {
+    transform:
+      translate(var(--from-x), var(--from-y))
+      scale(.12)
+      rotate(0deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(var(--rot, 0deg));
+    opacity: 1;
+  }
 }
-.card .caption {
-  padding-top:8px;font-family:"Trebuchet MS",sans-serif;
-  font-size:12px;text-align:center;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;
+
+.card img {
+  display: block;
+  width: 100%;
+  height: 142px;
+  object-fit: cover;
+  background: #eaf7fc;
+  cursor: zoom-in;
+  -webkit-user-drag: none;
 }
+
 .card .date {
-  font-size:10px;color:#8ca6b0;text-align:center;margin-top:3px;
+  font-size: 11px;
+  color: #7899a8;
+  text-align: center;
+  margin-top: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
 .card .card-tools {
-  display:none;gap:4px;justify-content:center;margin-top:7px;
+  display: none;
+  gap: 5px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 7px;
 }
+
 .card .card-tools button {
-  padding:5px 9px;font-size:11px;box-shadow:none;background:#e8f7ff;
+  padding: 5px 8px;
+  font-size: 10px;
+  box-shadow: none;
+  background: #e8f7ff;
 }
-.editing .card .card-tools { display:flex; }
+
+.editing .card .card-tools { display: flex; }
 
 #empty {
-  position:fixed;inset:0;display:flex;align-items:center;
-  justify-content:center;padding:100px 22px 50px;
-  text-align:center;pointer-events:none;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 22px 50px;
+  text-align: center;
+  pointer-events: none;
 }
+
 .empty-box {
-  max-width:400px;background:#ffffffc9;border:1px solid #fff;
-  border-radius:28px;padding:28px;box-shadow:0 10px 40px #8ecce922;
+  max-width: 400px;
+  background: #ffffffc9;
+  border: 1px solid white;
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 10px 40px #8ecce922;
 }
-.empty-box .emoji { font-size:52px; }
-.empty-box h2 { margin:8px 0;font-size:24px; }
-.empty-box p { line-height:1.55;margin:8px 0;color:#6a92a4; }
+
+.empty-box .emoji { font-size: 52px; }
+.empty-box h2 { margin: 8px 0; font-size: 24px; }
+.empty-box p { line-height: 1.55; margin: 8px 0; color: #6a92a4; }
 
 #status {
-  position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
-  background:#ffffffdb;backdrop-filter:blur(8px);
-  border:1px solid #fff;border-radius:999px;padding:8px 14px;
-  font-size:12px;max-width:90vw;text-align:center;
-  box-shadow:0 4px 18px #6faec222;z-index:12;
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  background: #ffffffdb;
+  backdrop-filter: blur(8px);
+  border: 1px solid white;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12px;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 4px 18px #6faec222;
+  z-index: 12;
 }
-#zoomhint {
-  position:fixed;bottom:18px;right:15px;font-size:11px;
-  color:#6b9aaf;background:#ffffffa8;padding:7px 10px;
-  border-radius:999px;pointer-events:none;
-}
-#modal {
-  display:none;position:fixed;z-index:30;inset:0;
-  background:#17425a77;backdrop-filter:blur(7px);
-  align-items:center;justify-content:center;padding:18px;
-}
-#modal.open { display:flex; }
-.dialog {
-  width:min(420px,100%);background:#fffdfb;border-radius:25px;
-  padding:23px;box-shadow:0 20px 70px #17425a44;
-}
-.dialog h2 { margin:0 0 8px; }
-.dialog p { color:#6a92a4;font-size:13px;line-height:1.5; }
-.dialog label { display:block;font-size:12px;margin:13px 0 5px; }
-.dialog input {
-  width:100%;border:1px solid #cbe8f4;border-radius:12px;
-  padding:11px;background:#f8fdff;color:var(--ink);
-}
-.dialog .row { display:flex;gap:8px;flex-wrap:wrap;margin-top:15px; }
-.dialog .row button { flex:1; }
-.small { font-size:11px;color:#7d9eac; }
-.hidden { display:none!important; }
-#fileInput {
-  position:fixed;left:-9999px;width:1px;height:1px;opacity:0;
-}
-#viewer {
-  display:none;position:fixed;z-index:25;inset:0;
-  background:#102f40e8;align-items:center;justify-content:center;padding:20px;
-}
-#viewer.open { display:flex; }
-#viewer img,#viewer video {
-  max-width:95vw;max-height:82vh;object-fit:contain;
-  border-radius:8px;box-shadow:0 15px 50px #0006;
-}
-#viewerClose { position:absolute;top:18px;right:18px; }
 
-@media(max-width:600px) {
-  header { padding:10px;align-items:flex-start; }
-  .brand { max-width:58vw;padding:8px 10px; }
-  .brand p { display:none; }
-  .actions { gap:6px; }
-  .actions button { padding:9px 11px;font-size:12px; }
-  .card { width:148px; }
-  .card img,.card video { height:128px; }
-  #zoomhint { display:none; }
+#zoomhint {
+  position: fixed;
+  bottom: 18px;
+  right: 15px;
+  font-size: 11px;
+  color: #6b9aaf;
+  background: #ffffffa8;
+  padding: 7px 10px;
+  border-radius: 999px;
+  pointer-events: none;
 }
-@media(prefers-reduced-motion:reduce) {
-  *,*::before,*::after {
-    animation-duration:.01ms!important;
-    transition-duration:.01ms!important;
+
+#modal {
+  display: none;
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  background: #17425a77;
+  backdrop-filter: blur(7px);
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+#modal.open { display: flex; }
+
+.dialog {
+  width: min(420px, 100%);
+  background: #fffdfb;
+  border-radius: 25px;
+  padding: 23px;
+  box-shadow: 0 20px 70px #17425a44;
+}
+
+.dialog h2 { margin: 0 0 8px; }
+
+.dialog p {
+  color: #6a92a4;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dialog label {
+  display: block;
+  font-size: 12px;
+  margin: 13px 0 5px;
+}
+
+.dialog input {
+  width: 100%;
+  border: 1px solid #cbe8f4;
+  border-radius: 12px;
+  padding: 11px;
+  background: #f8fdff;
+  color: var(--ink);
+}
+
+.dialog .row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.dialog .row button { flex: 1; }
+
+.small { font-size: 11px; color: #7d9eac; }
+.hidden { display: none !important; }
+
+#fileInput {
+  position: fixed;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+#viewer {
+  display: none;
+  position: fixed;
+  z-index: 25;
+  inset: 0;
+  background: #102f40e8;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+#viewer.open { display: flex; }
+
+#viewer img {
+  max-width: 95vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 15px 50px #0006;
+}
+
+#viewerClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+/* Mobile layout */
+@media (max-width: 600px) {
+  header {
+    padding: 10px;
+    align-items: flex-start;
   }
+
+  .brand {
+    max-width: 58vw;
+    padding: 8px 10px;
+  }
+
+  .brand p { display: none; }
+
+  .actions { gap: 6px; }
+  .actions button { padding: 9px 11px; font-size: 12px; }
+
+  .card { width: 145px; }
+  .card img { height: 125px; }
+  #zoomhint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud { animation: none; }
+  .card { animation-duration: .01ms; }
+  button { transition: none; }
 }
 </style>
 </head>
+
 <body>
 <header>
   <div class="brand">
     <h1 id="wallTitle">Our Little Photo Universe ☁️</h1>
-    <p id="subtitle">a tiny place for our favorite memories</p>
+    <p>a tiny place for our favorite memories</p>
   </div>
+
   <div class="actions">
     <button id="loginBtn">☁️ Owner login</button>
     <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
-    <button id="titleBtn" class="hidden">✎ Title</button>
+    <button id="titleBtn" class="hidden">✎ Wall title</button>
     <button id="logoutBtn" class="hidden">Log out</button>
   </div>
 </header>
 
-<div id="stage" aria-label="Photo wall canvas"><div id="world"></div></div>
+<div id="stage" aria-label="Photo wall canvas">
+  <div id="world"></div>
+</div>
+
 <div class="cloud c1">☁️</div>
 <div class="cloud c2">☁️</div>
 <div class="cloud c3">✦</div>
@@ -215,25 +449,31 @@ header>* { pointer-events:auto; }
     <p class="small">Log in with an owner account to add photos.</p>
   </div>
 </div>
+
 <div id="status">Connecting to our little universe…</div>
-<div id="zoomhint">Drag to wander · Pinch to zoom</div>
+<div id="zoomhint">Drag to wander · Pinch or scroll to zoom</div>
 <input id="fileInput" type="file" accept="image/*" multiple>
 
 <div id="modal">
   <div class="dialog">
-    <h2 id="dialogTitle">Owner login ☁️</h2>
-    <p id="dialogDesc">Sign in to add or manage memories.</p>
+    <h2>Owner login ☁️</h2>
+    <p>Sign in to add or manage memories.</p>
+
     <label for="email">Email</label>
     <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
+
     <label for="password">Password</label>
     <input id="password" type="password" autocomplete="current-password" placeholder="Your password">
+
     <div class="row">
       <button id="cancelModal">Cancel</button>
       <button id="submitLogin" class="primary">Sign in</button>
     </div>
-    <p class="small">Only accounts created by the site owner can manage the wall.</p>
+
+    <p class="small">Only accounts allowed by your Supabase settings can manage the wall.</p>
   </div>
 </div>
+
 <div id="viewer">
   <button id="viewerClose">✕ Close</button>
   <div id="viewerContent"></div>
@@ -241,158 +481,286 @@ header>* { pointer-events:auto; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
 <script>
+/* Your existing Supabase settings */
 const SUPABASE_URL = "https://lekewvjkjwrtcpaizxux.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_yeuYMWyCW_vQi-Sti3WkxQ_esCVzCts";
 const BUCKET = "photo-wall";
+
 const { createClient } = supabase;
 
-let db = null, session = null, photos = [], scale = 1;
-let tx = innerWidth / 2, ty = innerHeight / 2;
-let pointerStart = null, busy = false, transformFrame = 0;
-const $ = id => document.getElementById(id);
-const stage = $("stage"), world = $("world");
-const configured = SUPABASE_URL.startsWith("https://") &&
-  !SUPABASE_URL.includes("PASTE_") &&
-  !SUPABASE_ANON_KEY.includes("PASTE_");
+let db = null;
+let session = null;
+let photos = [];
+let scale = 1;
+let tx = window.innerWidth / 2;
+let ty = window.innerHeight / 2;
+let busy = false;
+let transformFrame = 0;
 
-function status(message) { $("status").textContent = message; }
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+const world = $("world");
+
+function status(message) {
+  $("status").textContent = message;
+}
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+/*
+  SPHERE LAYOUT
+
+  Photos are placed using a golden-angle spiral.
+  This creates a balanced, circular cluster without random gaps.
+
+  The radius grows gradually as more photos are added.
+  The same photo keeps the same position as long as its order
+  in the photos list does not change.
+*/
+function spherePosition(index) {
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const angle = index * goldenAngle;
+
+  // Smaller spacing = a tighter cluster.
+  const radius = 76 * Math.sqrt(index);
+
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius
+  };
+}
 
 function applyTransform() {
-  world.style.transform = `translate3d(${tx}px,${ty}px,0) scale(${scale})`;
+  world.style.transform =
+    `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
 }
+
 function scheduleTransform() {
   if (transformFrame) return;
+
   transformFrame = requestAnimationFrame(() => {
     transformFrame = 0;
     applyTransform();
   });
 }
+
 function updateAuthUI() {
   $("loginBtn").classList.toggle("hidden", !!session);
   $("uploadBtn").classList.toggle("hidden", !session);
   $("titleBtn").classList.toggle("hidden", !session);
   $("logoutBtn").classList.toggle("hidden", !session);
+
   document.body.classList.toggle("editing", !!session);
 }
-function esc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[char]));
-}
+
 function fileUrl(path) {
   return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
-function hashFile(file) {
-  return file.arrayBuffer()
-    .then(buffer => crypto.subtle.digest("SHA-256", buffer))
-    .then(hash => Array.from(new Uint8Array(hash))
-      .map(byte => byte.toString(16).padStart(2, "0")).join(""));
-}
+
 function niceDate(value) {
-  if (!value) return "date unknown";
+  if (!value) return "Date unknown";
+
   const date = new Date(value);
-  return isNaN(date) ? "date unknown" :
-    date.toLocaleDateString(undefined, {
-      year:"numeric",month:"short",day:"numeric"
-    });
-}
-function localPosition(index) {
-  const angle = index * 2.3999632297;
-  const radius = 145 * Math.sqrt(index + 1);
-  return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
+  if (isNaN(date.getTime())) return "Date unknown";
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
 }
 
-function render() {
+async function hashFile(file) {
+  const buffer = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest("SHA-256", buffer);
+
+  return Array.from(new Uint8Array(hash))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/*
+  Render the photos into a compact sphere.
+  The first photo is at the center.
+  Subsequent photos settle outward from the center.
+*/
+function render(animate = true) {
   const fragment = document.createDocumentFragment();
 
   photos.forEach((photo, index) => {
-    const pos = Number.isFinite(photo.x) && Number.isFinite(photo.y)
-      ? {x:photo.x,y:photo.y} : localPosition(index);
+    const pos = spherePosition(index);
     const card = document.createElement("article");
+
     card.className = "card";
-    card.style.left = (pos.x - 87) + "px";
-    card.style.top = (pos.y - 90) + "px";
-    card.style.setProperty("--rot", `${((index * 17) % 9) - 4}deg`);
+    card.style.left = (pos.x - 80) + "px";
+    card.style.top = (pos.y - 80) + "px";
+
+    const rotation = ((index * 17) % 7) - 3;
+    card.style.setProperty("--rot", `${rotation}deg`);
+
+    // The starting point for every card is the center.
+    card.style.setProperty("--from-x", `${-pos.x}px`);
+    card.style.setProperty("--from-y", `${-pos.y}px`);
+
+    // Center first, then spread outward in a gentle sequence.
+    card.style.setProperty("--delay", animate
+      ? `${Math.min(index * 22, 1100)}ms`
+      : "0ms");
+
     card.dataset.id = photo.id;
 
     const url = fileUrl(photo.storage_path);
+
     card.innerHTML = `
-      <img loading="lazy" decoding="async" fetchpriority="low"
-        alt="A memory" src="${esc(url)}">
-      <div class="caption">${esc(photo.caption || photo.original_filename || "our memory")}</div>
+      <img
+        src="${esc(url)}"
+        alt="Our memory"
+        loading="lazy"
+        decoding="async"
+        fetchpriority="low"
+        draggable="false"
+      >
       <div class="date">${esc(niceDate(photo.captured_at || photo.uploaded_at))}</div>
       <div class="card-tools">
-        <button data-action="view">View</button>
-        <button data-action="date">Date</button>
-        <button data-action="delete" class="danger">Remove</button>
-      </div>`;
+        <button type="button" data-action="view">View</button>
+        <button type="button" data-action="date">Date</button>
+        <button type="button" data-action="delete" class="danger">Remove</button>
+      </div>
+    `;
 
-    card.querySelector("img").addEventListener("click", () => openViewer(url));
+    card.querySelector("img").addEventListener("click", () => {
+      openViewer(url);
+    });
+
     card.addEventListener("click", event => {
       const button = event.target.closest("button");
       if (!button) return;
+
       event.stopPropagation();
+
       const action = button.dataset.action;
+
       if (action === "view") openViewer(url);
       if (action === "date") editDate(photo);
       if (action === "delete") removePhoto(photo);
     });
+
     fragment.appendChild(card);
   });
 
   world.replaceChildren(fragment);
+
   $("empty").style.display = photos.length ? "none" : "flex";
+
   applyTransform();
 }
 
 async function loadPhotos() {
   if (!db) {
-    status("Setup needed: add your Supabase URL and publishable key to index.html.");
+    status("Supabase is not configured.");
     return;
   }
-  status("Loading our memories…");
-  const {data,error} = await db.from("photos").select("*").order("sort_order",{ascending:true});
+
+  status("Gathering our memories…");
+
+  const { data, error } = await db
+    .from("photos")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
   if (error) {
     status("Couldn't load photos: " + error.message);
+    console.error(error);
     return;
   }
+
   photos = data || [];
-  render();
-  status(photos.length ? `${photos.length} memories on our wall 💗` :
-    "Your wall is ready for its first memory ☁️");
+
+  // Every load recalculates the same consistent sphere layout.
+  render(true);
+
+  status(
+    photos.length
+      ? `${photos.length} memories in our little universe 💗`
+      : "Your universe is ready for its first memory ☁️"
+  );
 }
 
+/* Open a larger version of a photo */
 function openViewer(url) {
-  $("viewerContent").innerHTML =
-    `<img decoding="async" src="${esc(url)}" alt="Memory">`;
+  $("viewerContent").innerHTML = `
+    <img src="${esc(url)}" decoding="async" alt="Our memory">
+  `;
+
   $("viewer").classList.add("open");
 }
-$("viewerClose").onclick = () => {
+
+function closeViewer() {
   $("viewer").classList.remove("open");
   $("viewerContent").innerHTML = "";
-};
+}
+
+$("viewerClose").onclick = closeViewer;
+
+$("viewer").addEventListener("click", event => {
+  if (event.target === $("viewer")) closeViewer();
+});
+
+/* Sign in */
 $("loginBtn").onclick = () => {
   $("modal").classList.add("open");
   $("email").focus();
 };
-$("cancelModal").onclick = () => $("modal").classList.remove("open");
+
+$("cancelModal").onclick = () => {
+  $("modal").classList.remove("open");
+};
+
+$("modal").addEventListener("click", event => {
+  if (event.target === $("modal")) {
+    $("modal").classList.remove("open");
+  }
+});
 
 $("submitLogin").onclick = async () => {
-  if (!db) return status("Add your Supabase URL and key in index.html first.");
+  if (!db) {
+    status("Supabase is not configured.");
+    return;
+  }
+
   const email = $("email").value.trim();
   const password = $("password").value;
-  if (!email || !password) return status("Enter your email and password.");
+
+  if (!email || !password) {
+    status("Enter your email and password.");
+    return;
+  }
 
   $("submitLogin").disabled = true;
   status("Signing in…");
+
   try {
-    const {data,error} = await db.auth.signInWithPassword({email,password});
+    const { data, error } = await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
     if (error) throw error;
+
     session = data.session;
     $("modal").classList.remove("open");
     updateAuthUI();
-    status("Welcome back ☁️");
+
     await loadPhotos();
+    status("Welcome back ☁️");
   } catch (error) {
     status("Sign-in failed: " + (error.message || String(error)));
   } finally {
@@ -400,63 +768,103 @@ $("submitLogin").onclick = async () => {
   }
 };
 
+$("password").addEventListener("keydown", event => {
+  if (event.key === "Enter") $("submitLogin").click();
+});
+
 $("logoutBtn").onclick = async () => {
-  const {error} = await db.auth.signOut();
-  if (error) return status("Sign-out failed: " + error.message);
+  const { error } = await db.auth.signOut();
+
+  if (error) {
+    status("Sign-out failed: " + error.message);
+    return;
+  }
+
   session = null;
   updateAuthUI();
   status("Signed out. Enjoy the memories 💗");
 };
 
+/* Upload multiple images */
 $("uploadBtn").onclick = () => $("fileInput").click();
 
 $("fileInput").onchange = async event => {
   const files = Array.from(event.target.files || []);
   event.target.value = "";
+
   if (!session || !files.length) return;
-  if (busy) return status("An upload is already running…");
+  if (busy) {
+    status("An upload is already running…");
+    return;
+  }
 
   busy = true;
-  let added = 0, skipped = 0, failed = 0, lastError = "";
+
+  let added = 0;
+  let skipped = 0;
+  let failed = 0;
+  let lastError = "";
 
   try {
-    for (let index = 0; index < files.length; index++) {
-      const file = files[index];
-      try {
-        if (!file.type.startsWith("image/"))
-          throw new Error("Please choose an image file.");
-        if (file.size > 20 * 1024 * 1024)
-          throw new Error(`${file.name} is larger than 20 MB.`);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
 
-        status(`Uploading ${index + 1}/${files.length}: ${file.name}`);
+      try {
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Please choose image files.");
+        }
+
+        if (file.size > 20 * 1024 * 1024) {
+          throw new Error(`${file.name} is larger than 20 MB.`);
+        }
+
+        status(`Adding memory ${i + 1} of ${files.length}…`);
+
         const digest = await hashFile(file);
+
         if (photos.some(photo => photo.content_sha256 === digest)) {
           skipped++;
           continue;
         }
 
-        const extension = (file.name.split(".").pop() || "jpg")
-          .toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,8) || "jpg";
-        const path = `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        const extension = (
+          file.name.split(".").pop() || "jpg"
+        ).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "jpg";
 
-        const {error:uploadError} = await db.storage.from(BUCKET).upload(path,file,{
-          contentType:file.type,upsert:false
-        });
-        if (uploadError) throw new Error("Storage upload: " + uploadError.message);
+        const path =
+          `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-        const position = localPosition(photos.length + added);
-        const modified = file.lastModified ? new Date(file.lastModified) : new Date();
-        const {data:row,error:rowError} = await db.from("photos").insert({
-          storage_path:path,
-          original_filename:file.name,
-          caption:file.name.replace(/\.[^.]+$/,""),
-          captured_at:modified.toISOString(),
-          x:position.x,
-          y:position.y,
-          width:null,
-          height:null,
-          content_sha256:digest
-        }).select().single();
+        const { error: uploadError } = await db.storage
+          .from(BUCKET)
+          .upload(path, file, {
+            contentType: file.type,
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw new Error("Storage upload: " + uploadError.message);
+        }
+
+        // Save the date from the file's modification time.
+        const modifiedDate = file.lastModified
+          ? new Date(file.lastModified)
+          : new Date();
+
+        const { data: row, error: rowError } = await db
+          .from("photos")
+          .insert({
+            storage_path: path,
+            original_filename: file.name,
+            caption: "",
+            captured_at: modifiedDate.toISOString(),
+            x: 0,
+            y: 0,
+            width: null,
+            height: null,
+            content_sha256: digest
+          })
+          .select()
+          .single();
 
         if (rowError) {
           await db.storage.from(BUCKET).remove([path]);
@@ -466,115 +874,219 @@ $("fileInput").onchange = async event => {
         photos.push(row);
         added++;
       } catch (error) {
-        console.error("Photo upload failed:",error);
+        console.error("Photo upload failed:", error);
         failed++;
         lastError = error?.message || String(error);
       }
     }
   } finally {
     busy = false;
-    render();
+
+    // New pictures join the same center-outward arrangement.
+    render(true);
   }
 
   if (lastError) {
-    status(`Upload finished with an error: ${lastError} (added ${added}, skipped ${skipped}, failed ${failed})`);
+    status(
+      `Upload finished: added ${added}, duplicates skipped ${skipped}, failed ${failed}. ${lastError}`
+    );
   } else {
-    status(`Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`);
+    status(
+      `Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`
+    );
   }
 };
 
+/* Change a photo's date */
 async function editDate(photo) {
   const current = photo.captured_at
-    ? new Date(photo.captured_at).toISOString().slice(0,10) : "";
-  const input = prompt("Enter the memory date (YYYY-MM-DD):",current);
-  if (input === null) return;
-  const date = new Date(input + "T12:00:00");
-  if (isNaN(date)) return status("That date doesn't look valid.");
+    ? new Date(photo.captured_at).toISOString().slice(0, 10)
+    : "";
 
-  const {error} = await db.from("photos")
-    .update({captured_at:date.toISOString()}).eq("id",photo.id);
-  if (error) return status("Couldn't update date: " + error.message);
+  const input = prompt("Enter the memory date (YYYY-MM-DD):", current);
+
+  if (input === null) return;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    status("Please use the date format YYYY-MM-DD.");
+    return;
+  }
+
+  const date = new Date(input + "T12:00:00");
+
+  if (isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== input) {
+    status("That date doesn't look valid.");
+    return;
+  }
+
+  const { error } = await db
+    .from("photos")
+    .update({ captured_at: date.toISOString() })
+    .eq("id", photo.id);
+
+  if (error) {
+    status("Couldn't update date: " + error.message);
+    return;
+  }
+
   photo.captured_at = date.toISOString();
-  render();
+
+  // Update the displayed date without replaying the animation.
+  render(false);
   status("Memory date updated ✨");
 }
 
+/* Delete a photo */
 async function removePhoto(photo) {
-  if (!confirm("Remove this memory from the wall? This cannot be undone.")) return;
-  const {error:rowError} = await db.from("photos").delete().eq("id",photo.id);
-  if (rowError) return status("Couldn't remove photo: " + rowError.message);
+  if (!confirm("Remove this memory from the wall? This cannot be undone.")) {
+    return;
+  }
 
-  const {error:storageError} = await db.storage.from(BUCKET).remove([photo.storage_path]);
+  const { error: rowError } = await db
+    .from("photos")
+    .delete()
+    .eq("id", photo.id);
+
+  if (rowError) {
+    status("Couldn't remove photo: " + rowError.message);
+    return;
+  }
+
+  const { error: storageError } = await db.storage
+    .from(BUCKET)
+    .remove([photo.storage_path]);
+
   photos = photos.filter(item => item.id !== photo.id);
-  render();
-  status(storageError
-    ? "Photo record removed; storage cleanup may need attention."
-    : "Memory removed.");
+
+  // Re-pack the remaining pictures into the sphere.
+  render(false);
+
+  status(
+    storageError
+      ? "Photo record removed, but storage cleanup may need attention."
+      : "Memory removed 💗"
+  );
 }
 
+/* Change the wall's title on this device */
 $("titleBtn").onclick = () => {
   const current = $("wallTitle").textContent;
-  const next = prompt("Give your photo wall a title:",current);
-  if (!next || !next.trim()) return;
-  $("wallTitle").textContent = next.trim();
-  localStorage.setItem("photoWallTitle",next.trim());
-  status("Title changed on this device. To make it shared across devices, we'll add a settings table later.");
-};
-const savedTitle = localStorage.getItem("photoWallTitle");
-if (savedTitle) $("wallTitle").textContent = savedTitle;
+  const next = prompt("Give your photo wall a title:", current);
 
-const activePointers = new Map();
-let pinchState = null;
-function pointerDistance(a,b) { return Math.hypot(a.x-b.x,a.y-b.y); }
-function pointerMidpoint(a,b) {
-  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  if (!next || !next.trim()) return;
+
+  $("wallTitle").textContent = next.trim();
+  localStorage.setItem("photoWallTitle", next.trim());
+
+  status("Wall title changed on this device.");
+};
+
+const savedTitle = localStorage.getItem("photoWallTitle");
+
+if (savedTitle) {
+  $("wallTitle").textContent = savedTitle;
 }
 
-stage.addEventListener("pointerdown",event => {
-  if (event.target.closest(".card") || event.target.closest("button")) return;
+/* Dragging, mouse-wheel zoom and touch pinch zoom */
+const activePointers = new Map();
+let pointerStart = null;
+let pinchState = null;
+
+function pointerDistance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function pointerMidpoint(a, b) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2
+  };
+}
+
+stage.addEventListener("pointerdown", event => {
+  if (
+    event.target.closest(".card") ||
+    event.target.closest("button")
+  ) return;
+
   stage.setPointerCapture(event.pointerId);
-  activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+
+  activePointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
 
   if (activePointers.size === 1) {
-    pointerStart = {x:event.clientX,y:event.clientY,tx,ty};
+    pointerStart = {
+      x: event.clientX,
+      y: event.clientY,
+      tx,
+      ty
+    };
+
     stage.classList.add("dragging");
   } else if (activePointers.size === 2) {
     const points = [...activePointers.values()];
-    const midpoint = pointerMidpoint(points[0],points[1]);
+    const midpoint = pointerMidpoint(points[0], points[1]);
+
     pinchState = {
-      distance:pointerDistance(points[0],points[1]),
-      scale,midpoint,tx,ty
+      distance: pointerDistance(points[0], points[1]),
+      scale,
+      midpoint,
+      tx,
+      ty
     };
   }
 });
 
-stage.addEventListener("pointermove",event => {
+stage.addEventListener("pointermove", event => {
   if (!activePointers.has(event.pointerId)) return;
-  activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+
+  activePointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
 
   if (activePointers.size >= 2) {
     const points = [...activePointers.values()];
-    const midpoint = pointerMidpoint(points[0],points[1]);
+    const midpoint = pointerMidpoint(points[0], points[1]);
+
     if (!pinchState) {
       pinchState = {
-        distance:pointerDistance(points[0],points[1]),scale,midpoint,tx,ty
+        distance: pointerDistance(points[0], points[1]),
+        scale,
+        midpoint,
+        tx,
+        ty
       };
       return;
     }
-    const distance = pointerDistance(points[0],points[1]);
-    scale = Math.max(.35,Math.min(2.5,
-      pinchState.scale * (distance/(pinchState.distance || 1))));
+
+    const distance = pointerDistance(points[0], points[1]);
+    const oldScale = scale;
+
+    scale = Math.max(
+      0.2,
+      Math.min(3, pinchState.scale * (
+        distance / (pinchState.distance || 1)
+      ))
+    );
+
     tx = midpoint.x -
-      (pinchState.midpoint.x-pinchState.tx) * (scale/(pinchState.scale || 1));
+      (pinchState.midpoint.x - pinchState.tx) *
+      (scale / (pinchState.scale || 1));
+
     ty = midpoint.y -
-      (pinchState.midpoint.y-pinchState.ty) * (scale/(pinchState.scale || 1));
+      (pinchState.midpoint.y - pinchState.ty) *
+      (scale / (pinchState.scale || 1));
+
     scheduleTransform();
     return;
   }
 
   if (pointerStart) {
-    tx = pointerStart.tx + (event.clientX-pointerStart.x);
-    ty = pointerStart.ty + (event.clientY-pointerStart.y);
+    tx = pointerStart.tx + (event.clientX - pointerStart.x);
+    ty = pointerStart.ty + (event.clientY - pointerStart.y);
     scheduleTransform();
   }
 });
@@ -582,46 +1094,73 @@ stage.addEventListener("pointermove",event => {
 function endPointer(event) {
   activePointers.delete(event.pointerId);
   pinchState = null;
+
   if (activePointers.size === 1) {
     const point = [...activePointers.values()][0];
-    pointerStart = {x:point.x,y:point.y,tx,ty};
+
+    pointerStart = {
+      x: point.x,
+      y: point.y,
+      tx,
+      ty
+    };
   } else {
     pointerStart = null;
   }
-  if (!activePointers.size) stage.classList.remove("dragging");
+
+  if (!activePointers.size) {
+    stage.classList.remove("dragging");
+  }
 }
-stage.addEventListener("pointerup",endPointer);
-stage.addEventListener("pointercancel",endPointer);
 
-stage.addEventListener("wheel",event => {
+stage.addEventListener("pointerup", endPointer);
+stage.addEventListener("pointercancel", endPointer);
+
+stage.addEventListener("wheel", event => {
   event.preventDefault();
-  const oldScale = scale;
-  scale = Math.max(.35,Math.min(2.5,
-    scale * (event.deltaY < 0 ? 1.08 : .92)));
-  const rect = stage.getBoundingClientRect();
-  const px = event.clientX-rect.left;
-  const py = event.clientY-rect.top;
-  tx = px-(px-tx)*(scale/oldScale);
-  ty = py-(py-ty)*(scale/oldScale);
-  scheduleTransform();
-},{passive:false});
 
+  const oldScale = scale;
+
+  scale = Math.max(
+    0.2,
+    Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92))
+  );
+
+  const rect = stage.getBoundingClientRect();
+  const px = event.clientX - rect.left;
+  const py = event.clientY - rect.top;
+
+  // Zoom toward the mouse cursor.
+  tx = px - (px - tx) * (scale / oldScale);
+  ty = py - (py - ty) * (scale / oldScale);
+
+  scheduleTransform();
+}, { passive: false });
+
+/* Start the website */
 async function init() {
   applyTransform();
-  if (!configured) {
-    status("Website files ready. Add your Supabase URL and publishable key to index.html.");
+
+  db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const { data, error } = await db.auth.getSession();
+
+  if (error) {
+    status("Couldn't check login: " + error.message);
     return;
   }
-  db = createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-  const {data} = await db.auth.getSession();
+
   session = data.session;
   updateAuthUI();
-  db.auth.onAuthStateChange((_event,newSession) => {
+
+  db.auth.onAuthStateChange((_event, newSession) => {
     session = newSession;
     updateAuthUI();
   });
+
   await loadPhotos();
 }
+
 init();
 </script>
 </body>
