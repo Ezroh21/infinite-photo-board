@@ -140,8 +140,16 @@ header>* { pointer-events:auto; }
   box-shadow:0 7px 18px #0005,0 0 0 1px #ffffff50;
   transform:rotate(var(--rot,0deg));transform-origin:center center;
   user-select:none;contain:layout style;
-  animation:bloom .45s cubic-bezier(.18,.75,.28,1) both;
+  animation:bloom .45s cubic-bezier(.18,.75,.28,1) backwards;
   animation-delay:var(--delay,0ms);
+  transition:transform .35s cubic-bezier(.2,.9,.3,1.25),box-shadow .35s ease;
+}
+@media (hover:hover) {
+  .card:hover {
+    transform:rotate(0deg) scale(1.2);
+    z-index:20;
+    box-shadow:0 18px 38px #0007,0 0 0 1px #ffffff80,0 0 24px #9ddcff55;
+  }
 }
 .card:before {
   content:"";position:absolute;top:-7px;left:50%;
@@ -259,7 +267,7 @@ header>* { pointer-events:auto; }
   #viewerHint { max-width:90vw;white-space:normal;line-height:1.4; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .card { animation-duration:.01ms; }
+  .card { animation-duration:.01ms;transition:none; }
   button { transition:none; }
 }
 </style>
