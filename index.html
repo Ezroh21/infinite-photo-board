@@ -155,8 +155,6 @@ $("fileInput").onchange=async e=>{
   throw new Error("Database insert: " + rowErr.message);
 }
 
-photos.push(row);
-added++;
    photos.push(row);added++;
  }catch(err){
   console.error("Photo upload failed:", err);
