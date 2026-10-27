@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -839,7 +838,6 @@ let viewerY = 0;
 let viewerPointers = new Map();
 let viewerGesture = null;
 let viewerDragged = false;
-let viewerClickTimer = null;
 
 function updateViewerTransform() {
   const image = $("viewerContent").querySelector("img");
@@ -920,7 +918,7 @@ $("viewerContent").addEventListener("wheel", event => {
   updateViewerTransform();
 }, { passive: false });
 
-/* Drag the enlarged image to explore it; pinch with two fingers to zoom */
+/* Drag the enlarged image; pinch with two fingers to zoom */
 function viewerDistance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -1025,6 +1023,8 @@ $("viewerContent").addEventListener("pointermove", event => {
 });
 
 function endViewerPointer(event) {
+  if (!viewerPointers.has(event.pointerId)) return;
+
   viewerPointers.delete(event.pointerId);
 
   if (viewerPointers.size === 1) {
@@ -1434,8 +1434,8 @@ function pointerMidpoint(a, b) {
 stage.addEventListener("pointerdown", event => {
   if (event.button !== undefined && event.button !== 0) return;
 
-  // Keep normal interaction with header, menu, and modal controls.
-  if (event.target.closest("button")) return;
+  // Do not start a wall gesture on buttons or other interactive controls.
+  if (event.target.closest("button, input, a, select, textarea")) return;
 
   stage.setPointerCapture(event.pointerId);
 
@@ -1532,11 +1532,21 @@ stage.addEventListener("pointermove", event => {
   }
 });
 
+/*
+ * FIX 1:
+ * Only finish a gesture if this pointer actually started one.
+ * Button pointer events must not change the wall's gesture state.
+ */
 function endPointer(event) {
+  if (!activePointers.has(event.pointerId)) return;
+
   const wasDragging = movedDuringGesture;
+
   activePointers.delete(event.pointerId);
 
-  if (wasDragging) suppressClickUntil = Date.now() + 300;
+  if (wasDragging) {
+    suppressClickUntil = Date.now() + 300;
+  }
 
   pinchState = null;
 
@@ -1553,30 +1563,45 @@ function endPointer(event) {
     pointerStart = null;
   }
 
-  if (!activePointers.size) {
+  if (activePointers.size === 0) {
     stage.classList.remove("dragging");
+
+    // Reset all gesture state after the gesture has ended.
+    movedDuringGesture = false;
+    pinchState = null;
+    pointerStart = null;
   }
 }
 
 stage.addEventListener("pointerup", endPointer);
 stage.addEventListener("pointercancel", endPointer);
 
-/* Ignore clicks generated at the end of a pan gesture. */
+/*
+ * FIX 2:
+ * Always allow photo tool buttons to receive clicks.
+ * Only suppress a non-button click immediately after dragging the wall.
+ */
 world.addEventListener("click", event => {
+  const button = event.target.closest("button[data-action]");
+
+  // Never block View, Date, or Remove.
+  if (button) return;
+
+  // Prevent the click generated after a drag from opening a photo.
   if (Date.now() < suppressClickUntil) {
     event.preventDefault();
     event.stopImmediatePropagation();
     return;
   }
 
-  const button = event.target.closest("button[data-action]");
-  if (button) return;
-
   const card = event.target.closest(".card");
   if (!card) return;
 
   const photo = photos.find(item => item.id === card.dataset.id);
-  if (photo) openViewer(fileUrl(photo.storage_path));
+
+  if (photo) {
+    openViewer(fileUrl(photo.storage_path));
+  }
 }, true);
 
 /* Mouse wheel zooms the wall toward the cursor */
