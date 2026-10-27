@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,538 +8,232 @@
 
 <style>
 :root {
-  --sky: #08172f;
-  --ink: #e4f2ff;
-  --paper: #fffdf8;
+  --sky:#08172f;
+  --ink:#e4f2ff;
+  --paper:#fffdf8;
 }
-
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  font-family: "Trebuchet MS", system-ui, sans-serif;
-  color: var(--ink);
+* { box-sizing:border-box; }
+html,body {
+  margin:0;width:100%;height:100%;overflow:hidden;
+  font-family:"Trebuchet MS",system-ui,sans-serif;color:var(--ink);
 }
-
 body {
-  background-color: #08172f;
+  background-color:#08172f;
   background-image:
-    radial-gradient(2px 2px at 8% 18%, #fff 98%, transparent),
-    radial-gradient(2px 2px at 19% 72%, #a9dcff 98%, transparent),
-    radial-gradient(3px 3px at 32% 35%, #fff 98%, transparent),
-    radial-gradient(2px 2px at 48% 14%, #fff 98%, transparent),
-    radial-gradient(2px 2px at 62% 66%, #b9e5ff 98%, transparent),
-    radial-gradient(3px 3px at 77% 28%, #fff 98%, transparent),
-    radial-gradient(2px 2px at 88% 78%, #fff 98%, transparent),
-    radial-gradient(2px 2px at 95% 12%, #a9dcff 98%, transparent),
-    radial-gradient(ellipse at 50% 50%, #16355b 0%, #0b1d3a 48%, #050d20 100%);
-  background-attachment: fixed;
+    radial-gradient(2px 2px at 8% 18%,#fff 98%,transparent),
+    radial-gradient(2px 2px at 19% 72%,#a9dcff 98%,transparent),
+    radial-gradient(3px 3px at 32% 35%,#fff 98%,transparent),
+    radial-gradient(2px 2px at 48% 14%,#fff 98%,transparent),
+    radial-gradient(2px 2px at 62% 66%,#b9e5ff 98%,transparent),
+    radial-gradient(3px 3px at 77% 28%,#fff 98%,transparent),
+    radial-gradient(2px 2px at 88% 78%,#fff 98%,transparent),
+    radial-gradient(2px 2px at 95% 12%,#a9dcff 98%,transparent),
+    radial-gradient(ellipse at 50% 50%,#16355b 0%,#0b1d3a 48%,#050d20 100%);
+  background-attachment:fixed;
 }
-
-button, input { font: inherit; }
-
+button,input { font:inherit; }
 button {
-  cursor: pointer;
-  border: 0;
-  border-radius: 999px;
-  padding: 10px 15px;
-  background: #f5fbff;
-  color: #164e69;
-  box-shadow: 0 4px 0 #8cb9d5;
-  transition: transform .15s, box-shadow .15s;
+  cursor:pointer;border:0;border-radius:999px;padding:10px 15px;
+  background:#f5fbff;color:#164e69;box-shadow:0 4px 0 #8cb9d5;
+  transition:transform .15s,box-shadow .15s;
 }
-
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 #8cb9d5;
-}
-
-button:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #8cb9d5;
-}
-
-button:disabled {
-  cursor: wait;
-  opacity: .6;
-}
-
-button.primary {
-  background: #8dd8f7;
-  color: #164e69;
-}
-
-button.danger {
-  background: #ffe0e8;
-  color: #8c3452;
-}
+button:hover { transform:translateY(-2px);box-shadow:0 6px 0 #8cb9d5; }
+button:active { transform:translateY(2px);box-shadow:0 1px 0 #8cb9d5; }
+button:disabled { cursor:wait;opacity:.6; }
+button.primary { background:#8dd8f7;color:#164e69; }
+button.danger { background:#ffe0e8;color:#8c3452; }
+.hidden { display:none!important; }
 
 header {
-  position: fixed;
-  z-index: 10;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  pointer-events: none;
+  position:fixed;z-index:10;top:0;left:0;right:0;
+  display:flex;gap:10px;align-items:center;justify-content:space-between;
+  padding:14px 16px;pointer-events:none;
 }
-
-header > * { pointer-events: auto; }
-
+header>* { pointer-events:auto; }
 .brand {
-  background: #102849e8;
-  backdrop-filter: blur(10px);
-  border: 1px solid #9ddcff55;
-  border-radius: 22px;
-  padding: 8px 14px;
-  box-shadow: 0 5px 24px #0004;
-  min-width: 0;
+  min-width:0;background:#102849e8;backdrop-filter:blur(10px);
+  border:1px solid #9ddcff55;border-radius:22px;padding:8px 14px;
+  box-shadow:0 5px 24px #0004;
 }
-
 .brand h1 {
-  font-size: clamp(16px, 3.8vw, 23px);
-  margin: 0;
-  font-weight: 900;
-  color: #eaf7ff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size:clamp(16px,3.8vw,23px);margin:0;font-weight:900;
+  color:#eaf7ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-
-.brand p {
-  font-size: 12px;
-  margin: 2px 0 0;
-  color: #a7d5f2;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.actions button { font-size: 13px; }
-
-.settings-menu {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
+.brand p { font-size:12px;margin:2px 0 0;color:#a7d5f2; }
+.actions { display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end; }
+.actions button { font-size:13px; }
+.settings-menu { position:relative;display:inline-flex;align-items:center; }
 #moreMenuBtn {
-  min-width: 38px;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 23px;
-  line-height: 1;
+  min-width:38px;width:38px;height:38px;padding:0;
+  display:flex;align-items:center;justify-content:center;font-size:23px;
 }
-
 #settingsDropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  z-index: 50;
-  min-width: 190px;
-  padding: 8px;
-  background: #f8fcff;
-  border: 1px solid #d9eef7;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px #0005;
+  position:absolute;top:calc(100% + 10px);right:0;z-index:50;
+  min-width:190px;padding:8px;background:#f8fcff;border:1px solid #d9eef7;
+  border-radius:16px;box-shadow:0 10px 30px #0005;
 }
-
 #settingsDropdown button {
-  display: block;
-  width: 100%;
-  padding: 11px 13px;
-  text-align: left;
-  border-radius: 10px;
-  box-shadow: none;
-  font-size: 13px;
-  white-space: nowrap;
+  display:block;width:100%;padding:11px 13px;text-align:left;
+  border-radius:10px;box-shadow:none;font-size:13px;white-space:nowrap;
+}
+#settingsDropdown button:hover { transform:none;box-shadow:none;background:#fff0f3; }
+
+/* Capacity meter */
+#capacityBar {
+  position:fixed;z-index:11;top:91px;left:50%;transform:translateX(-50%);
+  width:min(320px,calc(100vw - 32px));padding:9px 12px 10px;
+  border-radius:15px;background:#102849ef;border:1px solid #9ddcff55;
+  box-shadow:0 5px 20px #0003;backdrop-filter:blur(10px);
+  pointer-events:none;
+}
+#capacityInfo {
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-bottom:7px;font-size:11px;color:#e4f2ff;
+}
+#capacityCount { font-weight:800;white-space:nowrap; }
+#capacityTrack { width:100%;height:8px;overflow:hidden;border-radius:999px;background:#ffffff25; }
+#capacityFill {
+  width:0;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,#36d399 0%,#a3e635 35%,#facc15 65%,#fb923c 82%,#ef4444 100%);
+  transition:width .35s ease;
 }
 
-#settingsDropdown button:hover {
-  transform: none;
-  box-shadow: none;
-  background: #fff0f3;
-}
-
-/* Photo wall canvas */
+/* Wall */
 #stage {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  touch-action: none;
-  cursor: grab;
-  isolation: isolate;
-  z-index: 1;
+  position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab;
+  isolation:isolate;z-index:1;
 }
-
-#stage.dragging { cursor: grabbing; }
-
+#stage.dragging { cursor:grabbing; }
 #world {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 1px;
-  transform-origin: 0 0;
-  will-change: transform;
+  position:absolute;left:0;top:0;width:1px;height:1px;
+  transform-origin:0 0;will-change:transform;
 }
-
-/* Static decorations */
 .sky-decoration {
-  position: fixed;
-  z-index: 0;
-  pointer-events: none;
-  user-select: none;
-  line-height: 1;
-  opacity: .68;
-  filter: drop-shadow(0 0 12px #9ddcff30);
+  position:fixed;z-index:0;pointer-events:none;user-select:none;
+  line-height:1;opacity:.68;filter:drop-shadow(0 0 12px #9ddcff30);
 }
+.sky-cloud { font-size:clamp(42px,6vw,78px);opacity:.3; }
+.sky-star { color:#d9f0ff;font-size:24px; }
+.sky-heart { font-size:27px;color:#ffb9d4;opacity:.5; }
 
-.sky-cloud {
-  font-size: clamp(42px, 6vw, 78px);
-  opacity: .3;
-}
-
-.sky-star {
-  color: #d9f0ff;
-  font-size: 24px;
-}
-
-.sky-heart {
-  font-size: 27px;
-  color: #ffb9d4;
-  opacity: .5;
-}
-
-/* Photo cards */
 .card {
-  position: absolute;
-  width: var(--card-width, 160px);
-  padding: 8px 8px 10px;
-  background: var(--paper);
-  border-radius: 5px;
-  box-shadow: 0 7px 18px #0005, 0 0 0 1px #ffffff50;
-  transform: rotate(var(--rot, 0deg));
-  transform-origin: center center;
-  user-select: none;
-  contain: layout style;
-  will-change: transform, opacity;
-  animation: bloom .65s cubic-bezier(.18,.75,.28,1) both;
-  animation-delay: var(--delay, 0ms);
+  position:absolute;width:var(--card-width,160px);padding:8px 8px 10px;
+  background:var(--paper);border-radius:5px;
+  box-shadow:0 7px 18px #0005,0 0 0 1px #ffffff50;
+  transform:rotate(var(--rot,0deg));transform-origin:center center;
+  user-select:none;contain:layout style;
+  animation:bloom .45s cubic-bezier(.18,.75,.28,1) both;
+  animation-delay:var(--delay,0ms);
 }
-
 .card:before {
-  content: "";
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  transform: translateX(-50%) rotate(-3deg);
-  width: 54px;
-  height: 16px;
-  background: #a9e4f2bb;
-  border-radius: 2px;
-  z-index: 2;
-  pointer-events: none;
+  content:"";position:absolute;top:-7px;left:50%;
+  transform:translateX(-50%) rotate(-3deg);width:54px;height:16px;
+  background:#a9e4f2bb;border-radius:2px;z-index:2;pointer-events:none;
 }
-
 @keyframes bloom {
-  from {
-    transform: translate(var(--from-x), var(--from-y)) scale(.12) rotate(0deg);
-    opacity: 0;
-  }
-  to {
-    transform: rotate(var(--rot, 0deg));
-    opacity: 1;
-  }
+  from { transform:translate(var(--from-x),var(--from-y)) scale(.12);opacity:0; }
+  to { transform:rotate(var(--rot,0deg));opacity:1; }
 }
-
 .card img {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: var(--photo-ratio, 1 / 1);
-  object-fit: contain;
-  background: #eaf7fc;
-  cursor: zoom-in;
-  -webkit-user-drag: none;
-  pointer-events: none;
-  border-radius: 2px;
+  display:block;width:100%;height:auto;aspect-ratio:var(--photo-ratio,1);
+  object-fit:contain;background:#eaf7fc;cursor:zoom-in;
+  -webkit-user-drag:none;pointer-events:none;border-radius:2px;
 }
-
 .card .date {
-  font-size: 11px;
-  color: #7899a8;
-  text-align: center;
-  margin-top: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
+  font-size:11px;color:#7899a8;text-align:center;margin-top:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;
 }
-
 .card .card-tools {
-  display: none;
-  gap: 5px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 7px;
+  display:none;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:7px;
 }
-
-.card .card-tools button {
-  padding: 5px 8px;
-  font-size: 10px;
-  box-shadow: none;
-  background: #e8f7ff;
-}
-
-.editing .card .card-tools { display: flex; }
+.card .card-tools button { padding:5px 8px;font-size:10px;box-shadow:none;background:#e8f7ff; }
+.editing .card .card-tools { display:flex; }
 
 #empty {
-  position: fixed;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 100px 22px 50px;
-  text-align: center;
-  pointer-events: none;
+  position:fixed;inset:0;z-index:2;display:flex;align-items:center;
+  justify-content:center;padding:145px 22px 50px;text-align:center;pointer-events:none;
 }
-
 .empty-box {
-  max-width: 400px;
-  background: #102849e8;
-  border: 1px solid #a9dcff66;
-  border-radius: 28px;
-  padding: 28px;
-  box-shadow: 0 10px 40px #0004;
+  max-width:400px;background:#102849e8;border:1px solid #a9dcff66;
+  border-radius:28px;padding:28px;box-shadow:0 10px 40px #0004;
 }
-
-.empty-box .emoji { font-size: 52px; }
-.empty-box h2 { margin: 8px 0; font-size: 24px; }
-.empty-box p { line-height: 1.55; margin: 8px 0; color: #c1e2f7; }
+.empty-box .emoji { font-size:52px; }
+.empty-box h2 { margin:8px 0;font-size:24px; }
+.empty-box p { line-height:1.55;margin:8px 0;color:#c1e2f7; }
 
 #status {
-  position: fixed;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  background: #102849e8;
-  color: #e4f2ff;
-  backdrop-filter: blur(8px);
-  border: 1px solid #9ddcff55;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 12px;
-  max-width: 90vw;
-  text-align: center;
-  box-shadow: 0 4px 18px #0004;
-  z-index: 12;
+  position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+  background:#102849e8;color:#e4f2ff;backdrop-filter:blur(8px);
+  border:1px solid #9ddcff55;border-radius:999px;padding:8px 14px;
+  font-size:12px;max-width:90vw;text-align:center;box-shadow:0 4px 18px #0004;z-index:12;
 }
-
 #zoomhint {
-  position: fixed;
-  bottom: 18px;
-  right: 15px;
-  font-size: 11px;
-  color: #d0e9ff;
-  background: #102849d9;
-  padding: 7px 10px;
-  border-radius: 999px;
-  pointer-events: none;
-  z-index: 12;
+  position:fixed;bottom:18px;right:15px;font-size:11px;color:#d0e9ff;
+  background:#102849d9;padding:7px 10px;border-radius:999px;
+  pointer-events:none;z-index:12;
 }
-
 #modal {
-  display: none;
-  position: fixed;
-  z-index: 30;
-  inset: 0;
-  background: #06152bd9;
-  backdrop-filter: blur(7px);
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
+  display:none;position:fixed;z-index:30;inset:0;background:#06152bd9;
+  backdrop-filter:blur(7px);align-items:center;justify-content:center;padding:18px;
 }
-
-#modal.open { display: flex; }
-
+#modal.open { display:flex; }
 .dialog {
-  width: min(420px, 100%);
-  background: #f8fcff;
-  color: #31566a;
-  border-radius: 25px;
-  padding: 23px;
-  box-shadow: 0 20px 70px #0006;
+  width:min(420px,100%);background:#f8fcff;color:#31566a;
+  border-radius:25px;padding:23px;box-shadow:0 20px 70px #0006;
 }
-
-.dialog h2 { margin: 0 0 8px; }
-
-.dialog p {
-  color: #6a92a4;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.dialog label {
-  display: block;
-  font-size: 12px;
-  margin: 13px 0 5px;
-}
-
+.dialog h2 { margin:0 0 8px; }
+.dialog p { color:#6a92a4;font-size:13px;line-height:1.5; }
+.dialog label { display:block;font-size:12px;margin:13px 0 5px; }
 .dialog input {
-  width: 100%;
-  border: 1px solid #cbe8f4;
-  border-radius: 12px;
-  padding: 11px;
-  background: #f8fdff;
-  color: #31566a;
+  width:100%;border:1px solid #cbe8f4;border-radius:12px;padding:11px;
+  background:#f8fdff;color:#31566a;
 }
+.dialog .row { display:flex;gap:8px;flex-wrap:wrap;margin-top:15px; }
+.dialog .row button { flex:1; }
+.small { font-size:11px;color:#7d9eac; }
+#fileInput { position:fixed;left:-9999px;width:1px;height:1px;opacity:0; }
 
-.dialog .row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 15px;
-}
-
-.dialog .row button { flex: 1; }
-
-.small { font-size: 11px; color: #7d9eac; }
-.hidden { display: none !important; }
-
-#fileInput {
-  position: fixed;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-}
-
-/* Enlarged photo viewer */
+/* Viewer */
 #viewer {
-  display: none;
-  position: fixed;
-  z-index: 25;
-  inset: 0;
-  background: #06152bf5;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  overflow: hidden;
-  touch-action: none;
+  display:none;position:fixed;z-index:25;inset:0;background:#06152bf5;
+  align-items:center;justify-content:center;padding:20px;overflow:hidden;touch-action:none;
 }
-
-#viewer.open { display: flex; }
-
+#viewer.open { display:flex; }
 #viewerContent {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  touch-action: none;
-  cursor: grab;
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;touch-action:none;cursor:grab;
 }
-
-#viewerContent.dragging { cursor: grabbing; }
-
+#viewerContent.dragging { cursor:grabbing; }
 #viewer img {
-  display: block;
-  max-width: 95vw;
-  max-height: 82vh;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 15px 50px #0006;
-  transform-origin: center center;
-  will-change: transform;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
+  display:block;max-width:95vw;max-height:82vh;width:auto;height:auto;
+  object-fit:contain;border-radius:8px;box-shadow:0 15px 50px #0006;
+  transform-origin:center center;will-change:transform;user-select:none;-webkit-user-drag:none;
+  pointer-events:none;
 }
-
-#viewerClose {
-  position: absolute;
-  z-index: 3;
-  top: 18px;
-  right: 18px;
-}
-
+#viewerClose { position:absolute;z-index:3;top:18px;right:18px; }
 #viewerHint {
-  position: absolute;
-  z-index: 3;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
-  color: white;
-  background: #102f40d9;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  text-align: center;
-  white-space: nowrap;
-  pointer-events: none;
+  position:absolute;z-index:3;left:50%;bottom:18px;transform:translateX(-50%);
+  color:white;background:#102f40d9;padding:8px 12px;border-radius:999px;
+  font-size:11px;text-align:center;white-space:nowrap;pointer-events:none;
 }
 
-@media (max-width: 600px) {
-  header {
-    padding: 10px;
-    align-items: flex-start;
-  }
-
-  .brand {
-    max-width: 58vw;
-    padding: 8px 10px;
-  }
-
-  .brand p { display: none; }
-
-  .actions { gap: 6px; }
-  .actions button { padding: 9px 11px; font-size: 12px; }
-
-  #moreMenuBtn {
-    width: 34px;
-    min-width: 34px;
-    height: 34px;
-    padding: 0;
-    font-size: 21px;
-  }
-
-  #settingsDropdown { min-width: 180px; }
-
-  .card { width: var(--card-width, 145px); }
-
-  #zoomhint { display: none; }
-
-  #viewerHint {
-    max-width: 90vw;
-    white-space: normal;
-    line-height: 1.4;
-  }
+@media(max-width:600px) {
+  header { padding:10px;align-items:flex-start; }
+  .brand { max-width:58vw;padding:8px 10px; }
+  .brand p { display:none; }
+  .actions { gap:6px; }
+  .actions button { padding:9px 11px;font-size:12px; }
+  #moreMenuBtn { width:34px;min-width:34px;height:34px;padding:0;font-size:21px; }
+  #settingsDropdown { min-width:180px; }
+  .card { width:var(--card-width,145px); }
+  #capacityBar { top:62px;width:min(260px,calc(100vw - 24px));padding:7px 10px 8px; }
+  #capacityInfo { font-size:10px; }
+  #zoomhint { display:none; }
+  #viewerHint { max-width:90vw;white-space:normal;line-height:1.4; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .card { animation-duration: .01ms; }
-  button { transition: none; }
+@media(prefers-reduced-motion:reduce) {
+  .card { animation-duration:.01ms; }
+  button { transition:none; }
 }
 </style>
 </head>
@@ -551,34 +244,37 @@ header > * { pointer-events: auto; }
     <h1 id="wallTitle">Our Little Photo Universe ✦</h1>
     <p>a tiny place for our favorite memories</p>
   </div>
-
   <div class="actions">
     <button id="loginBtn">☁️ Owner login</button>
     <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
     <button id="titleBtn" class="hidden">✎ Wall title</button>
     <button id="logoutBtn" class="hidden">Log out</button>
-
     <div id="settingsMenu" class="settings-menu hidden">
       <button id="moreMenuBtn" type="button" aria-label="Settings"
         aria-haspopup="true" aria-expanded="false" title="More settings">⋮</button>
       <div id="settingsDropdown" class="hidden">
-        <button id="deleteAllBtn" type="button" class="danger">
-          🗑 Delete all photos
-        </button>
+        <button id="deleteAllBtn" type="button" class="danger">🗑 Delete all photos</button>
       </div>
     </div>
   </div>
 </header>
 
-<div id="stage" aria-label="Photo wall canvas">
-  <div id="world"></div>
+<div id="capacityBar" role="status" aria-live="polite">
+  <div id="capacityInfo">
+    <span id="capacityLabel">Photo board capacity</span>
+    <span id="capacityCount">0 / 500 photos</span>
+  </div>
+  <div id="capacityTrack" role="progressbar" aria-label="Photo board capacity"
+    aria-valuemin="0" aria-valuemax="500" aria-valuenow="0">
+    <div id="capacityFill"></div>
+  </div>
 </div>
 
-<!-- Static sky decorations -->
+<div id="stage" aria-label="Photo wall canvas"><div id="world"></div></div>
+
 <div class="sky-decoration sky-cloud" style="left:4%;top:22%">☁️</div>
 <div class="sky-decoration sky-cloud" style="right:4%;bottom:13%">☁️</div>
 <div class="sky-decoration sky-cloud" style="left:34%;bottom:7%;font-size:42px">☁️</div>
-
 <div class="sky-decoration sky-star" style="left:15%;top:14%">✦</div>
 <div class="sky-decoration sky-star" style="left:27%;top:82%">✧</div>
 <div class="sky-decoration sky-star" style="right:19%;top:17%">✦</div>
@@ -587,7 +283,6 @@ header > * { pointer-events: auto; }
 <div class="sky-decoration sky-star" style="right:37%;top:12%">✧</div>
 <div class="sky-decoration sky-star" style="left:44%;bottom:19%;font-size:17px">✦</div>
 <div class="sky-decoration sky-star" style="right:45%;bottom:12%;font-size:16px">✧</div>
-
 <div class="sky-decoration sky-heart" style="left:23%;top:44%">♡</div>
 <div class="sky-decoration sky-heart" style="right:26%;bottom:24%">♥</div>
 <div class="sky-decoration sky-heart" style="right:8%;top:36%">♡</div>
@@ -629,10 +324,15 @@ header > * { pointer-events: auto; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
 <script>
+"use strict";
+
 const SUPABASE_URL = "https://lekewvjkjwrtcpaizxux.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_yeuYMWyCW_vQi-Sti3WkxQ_esCVzCts";
 const BUCKET = "photo-wall";
-
+const MAX_PHOTOS = 500;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const THUMB_MAX_EDGE = 480;
+const THUMB_QUALITY = 0.78;
 const { createClient } = supabase;
 
 let db = null;
@@ -643,289 +343,289 @@ let tx = window.innerWidth / 2;
 let ty = window.innerHeight / 2;
 let busy = false;
 let transformFrame = 0;
+let renderVersion = 0;
+let resizeTimer = null;
 
 const $ = id => document.getElementById(id);
 const stage = $("stage");
 const world = $("world");
-
-/* Photo dimensions and layout cache */
 const photoDimensions = new Map();
 const photoPositions = new Map();
 
-function status(message) {
-  $("status").textContent = message;
-}
+function status(message) { $("status").textContent = message; }
 
 function esc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  }[char]));
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
 }
 
-function getPhotoKey(photo) {
-  return String(photo.id);
-}
+function getPhotoKey(photo) { return String(photo.id); }
 
 function fileUrl(path) {
   return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
+function displayUrl(photo) {
+  return fileUrl(photo.thumbnail_path || photo.storage_path);
+}
+
+function originalUrl(photo) { return fileUrl(photo.storage_path); }
+
 function niceDate(value) {
   if (!value) return "Date unknown";
   const date = new Date(value);
   if (isNaN(date.getTime())) return "Date unknown";
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric"
+  return date.toLocaleDateString(undefined,{
+    year:"numeric",month:"short",day:"numeric"
   });
 }
 
-async function hashFile(file) {
-  const buffer = await file.arrayBuffer();
-  const hash = await crypto.subtle.digest("SHA-256", buffer);
-
-  return Array.from(new Uint8Array(hash))
-    .map(byte => byte.toString(16).padStart(2, "0"))
-    .join("");
+function updateCapacityBar() {
+  const count = photos.length;
+  const remaining = Math.max(0,MAX_PHOTOS-count);
+  const percentage = Math.min(100,count/MAX_PHOTOS*100);
+  $("capacityFill").style.width = `${percentage}%`;
+  $("capacityCount").textContent = `${count} / ${MAX_PHOTOS} photos`;
+  $("capacityLabel").textContent = remaining === 0
+    ? "Photo board is full!"
+    : `${remaining} more ${remaining === 1 ? "photo" : "photos"} available`;
+  $("capacityTrack").setAttribute("aria-valuenow",String(count));
 }
 
-/* Photo orientation */
+async function hashFile(file) {
+  const digest = await crypto.subtle.digest("SHA-256",await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest))
+    .map(byte=>byte.toString(16).padStart(2,"0")).join("");
+}
+
+/* Create a compressed WebP preview. Original file remains untouched. */
+async function createThumbnail(file) {
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+    const ratio = Math.min(1,THUMB_MAX_EDGE/Math.max(bitmap.width,bitmap.height));
+    const width = Math.max(1,Math.round(bitmap.width*ratio));
+    const height = Math.max(1,Math.round(bitmap.height*ratio));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d",{alpha:false});
+    context.drawImage(bitmap,0,0,width,height);
+    const blob = await new Promise(resolve =>
+      canvas.toBlob(resolve,"image/webp",THUMB_QUALITY)
+    );
+    if (!blob) throw new Error("Your browser could not create a thumbnail.");
+    return {blob,width:bitmap.width,height:bitmap.height};
+  } finally {
+    if (bitmap) bitmap.close();
+  }
+}
+
 function photoRatio(photo) {
-  return photoDimensions.get(getPhotoKey(photo))?.ratio || 1;
+  const cached = photoDimensions.get(getPhotoKey(photo));
+  const width = cached?.width || photo.width || 1;
+  const height = cached?.height || photo.height || 1;
+  return width / height;
 }
 
 function cardWidth(photo) {
-  const mobile = window.innerWidth <= 600;
-  const base = mobile ? 145 : 160;
+  const base = window.innerWidth <= 600 ? 145 : 160;
   const ratio = photoRatio(photo);
-
-  if (ratio >= 1.35) return base * 1.22;
-  if (ratio <= 0.75) return base * 0.88;
+  if (ratio >= 1.35) return base*1.22;
+  if (ratio <= .75) return base*.88;
   return base;
 }
 
 function cardHeight(photo) {
-  const width = cardWidth(photo);
-  const imageHeight = width / photoRatio(photo);
-
-  // Account for image, date, padding, and owner controls.
-  return imageHeight + 8 + 14 + 18 + (session ? 44 : 0);
+  return cardWidth(photo)/photoRatio(photo)+8+14+18+(session?44:0);
 }
 
 async function loadPhotoDimensions() {
-  await Promise.all(photos.map(photo => {
-    const key = getPhotoKey(photo);
+  /* Prefer database dimensions; only inspect legacy rows without dimensions. */
+  const missing = photos.filter(photo =>
+    !photoDimensions.has(getPhotoKey(photo)) &&
+    !(Number(photo.width)>0 && Number(photo.height)>0)
+  );
 
-    if (photoDimensions.has(key)) return Promise.resolve();
-
-    return new Promise(resolve => {
-      const img = new Image();
-
-      img.onload = () => {
-        const width = img.naturalWidth || 1;
-        const height = img.naturalHeight || 1;
-
-        photoDimensions.set(key, {
-          width,
-          height,
-          ratio: width / height
-        });
-
-        resolve();
-      };
-
-      img.onerror = () => {
-        photoDimensions.set(key, {
-          width: 1,
-          height: 1,
-          ratio: 1
-        });
-        resolve();
-      };
-
-      img.src = fileUrl(photo.storage_path);
-    });
-  }));
-}
-
-/* Randomness that stays consistent between renders */
-function randomFromString(value) {
-  let hash = 2166136261;
-
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+  for (const photo of photos) {
+    if (!photoDimensions.has(getPhotoKey(photo)) &&
+        Number(photo.width)>0 && Number(photo.height)>0) {
+      photoDimensions.set(getPhotoKey(photo),{
+        width:Number(photo.width),
+        height:Number(photo.height),
+        ratio:Number(photo.width)/Number(photo.height)
+      });
+    }
   }
 
+  /* Limit concurrent dimension reads for old records. */
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < missing.length) {
+      const photo = missing[cursor++];
+      await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          photoDimensions.set(getPhotoKey(photo),{
+            width:img.naturalWidth||1,
+            height:img.naturalHeight||1,
+            ratio:(img.naturalWidth||1)/(img.naturalHeight||1)
+          });
+          resolve();
+        };
+        img.onerror = () => {
+          photoDimensions.set(getPhotoKey(photo),{width:1,height:1,ratio:1});
+          resolve();
+        };
+        img.src = displayUrl(photo);
+      });
+    }
+  };
+  await Promise.all(Array.from({length:Math.min(5,missing.length)},worker));
+}
+
+/* Deterministic pseudo-random placement */
+function randomFromString(value) {
+  let hash=2166136261;
+  for(let i=0;i<value.length;i++){
+    hash^=value.charCodeAt(i);
+    hash=Math.imul(hash,16777619);
+  }
   hash >>>= 0;
-
-  return function () {
-    hash += 0x6D2B79F5;
-    let t = hash;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  return function(){
+    hash+=0x6D2B79F5;
+    let t=hash;
+    t=Math.imul(t^(t>>>15),t|1);
+    t^=t+Math.imul(t^(t>>>7),t|61);
+    return ((t^(t>>>14))>>>0)/4294967296;
   };
 }
 
-/* Calculate each rotated frame's bounding box */
-function getFrameBox(photo, x, y, rotation = 0) {
-  const width = cardWidth(photo);
-  const height = cardHeight(photo);
-  const radians = Math.abs(rotation) * Math.PI / 180;
-  const cos = Math.cos(radians);
-  const sin = Math.sin(radians);
-
-  const rotatedWidth = width * cos + height * sin;
-  const rotatedHeight = height * cos + width * sin;
-
-  return {
-    x, y,
-    left: x - rotatedWidth / 2,
-    right: x + rotatedWidth / 2,
-    top: y - rotatedHeight / 2,
-    bottom: y + rotatedHeight / 2
-  };
+function getFrameBox(photo,x,y,rotation=0) {
+  const width=cardWidth(photo),height=cardHeight(photo);
+  const radians=Math.abs(rotation)*Math.PI/180;
+  const rw=width*Math.cos(radians)+height*Math.sin(radians);
+  const rh=height*Math.cos(radians)+width*Math.sin(radians);
+  return {x,y,left:x-rw/2,right:x+rw/2,top:y-rh/2,bottom:y+rh/2};
 }
 
-/* Strict rectangular collision check with a very small gap */
-function framesOverlap(a, b, gap = 4) {
-  return !(
-    a.right + gap <= b.left ||
-    a.left >= b.right + gap ||
-    a.bottom + gap <= b.top ||
-    a.top >= b.bottom + gap
-  );
+function framesOverlap(a,b,gap=4) {
+  return !(a.right+gap<=b.left || a.left>=b.right+gap ||
+           a.bottom+gap<=b.top || a.top>=b.bottom+gap);
 }
 
-/* --------------------------------------------------
-   TIGHT RANDOMIZED CIRCULAR LAYOUT
-
-   - Keeps portrait and landscape frame dimensions.
-   - Searches close to the center first.
-   - Uses a small 2–4px gap between rotated frames.
-   - Expands only when a position cannot be found.
-   - Keeps positions stable during pan and zoom.
--------------------------------------------------- */
-
+/*
+ * Spatial hash: only check cards in nearby grid cells rather than every
+ * previously placed card. This greatly reduces collision work as the wall grows.
+ */
 function createRandomCircularLayout() {
   photoPositions.clear();
+  if(!photos.length) return;
 
-  if (!photos.length) return;
+  const gap=window.innerWidth<=600?2:4;
+  const cellSize=220;
+  const grid=new Map();
+  const placed=[];
+  const cellKey=(x,y)=>`${x},${y}`;
 
-  const placed = [];
-  const gap = window.innerWidth <= 600 ? 2 : 4;
+  function cellsFor(box) {
+    const cells=[];
+    const minX=Math.floor(box.left/cellSize);
+    const maxX=Math.floor(box.right/cellSize);
+    const minY=Math.floor(box.top/cellSize);
+    const maxY=Math.floor(box.bottom/cellSize);
+    for(let gx=minX;gx<=maxX;gx++)
+      for(let gy=minY;gy<=maxY;gy++) cells.push(cellKey(gx,gy));
+    return cells;
+  }
 
-  photos.forEach((photo, index) => {
-    const rng = randomFromString(getPhotoKey(photo) + "-circle");
-    const rotation = rng() * 4 - 2;
-    const width = cardWidth(photo);
-    const height = cardHeight(photo);
+  function collides(box) {
+    const seen=new Set();
+    for(const key of cellsFor(box)){
+      const list=grid.get(key)||[];
+      for(const index of list){
+        if(seen.has(index)) continue;
+        seen.add(index);
+        if(framesOverlap(box,placed[index].box,gap)) return true;
+      }
+    }
+    return false;
+  }
 
-    // A compact radius helps keep the wall visually clustered.
-    const baseRadius = Math.max(
-      Math.max(width, height) * 0.65,
-      Math.sqrt(photos.length) * Math.max(width, height) * 0.43
+  function add(photo,box) {
+    const index=placed.length;
+    placed.push({photo,box});
+    for(const key of cellsFor(box)){
+      if(!grid.has(key)) grid.set(key,[]);
+      grid.get(key).push(index);
+    }
+  }
+
+  photos.forEach(photo=>{
+    const rng=randomFromString(getPhotoKey(photo)+"-circle");
+    const rotation=rng()*4-2;
+    const width=cardWidth(photo),height=cardHeight(photo);
+    const baseRadius=Math.max(
+      Math.max(width,height)*.65,
+      Math.sqrt(photos.length)*Math.max(width,height)*.43
     );
+    let chosen=null;
 
-    let chosen = null;
-
-    // Search close to the center first, expanding gradually.
-    for (let attempt = 0; attempt < 5000; attempt++) {
-      const progress = attempt / 5000;
-      const radius = baseRadius * (0.42 + progress * 0.95);
-      const angle = rng() * Math.PI * 2;
-      const radial = Math.sqrt(rng()) * radius;
-
-      const x = Math.cos(angle) * radial;
-      const y = Math.sin(angle) * radial;
-      const box = getFrameBox(photo, x, y, rotation);
-
-      if (!placed.some(item => framesOverlap(box, item.box, gap))) {
-        chosen = { x, y, rotation, box };
-        break;
-      }
+    for(let attempt=0;attempt<1200;attempt++){
+      const radius=baseRadius*(.42+(attempt/1200)*.95);
+      const angle=rng()*Math.PI*2;
+      const radial=Math.sqrt(rng())*radius;
+      const x=Math.cos(angle)*radial,y=Math.sin(angle)*radial;
+      const box=getFrameBox(photo,x,y,rotation);
+      if(!collides(box)){chosen={x,y,rotation,box};break;}
     }
 
-    // Search compact rings before expanding further.
-    if (!chosen) {
-      for (let ring = 1; ring < 160 && !chosen; ring++) {
-        const radius = baseRadius * (0.65 + ring * 0.045);
-        const samples = 48 + ring * 3;
-        const angleOffset = rng() * Math.PI * 2;
-
-        for (let j = 0; j < samples; j++) {
-          const angle =
-            angleOffset + (j / samples) * Math.PI * 2;
-
-          const jitter = (rng() - 0.5) * Math.min(12, gap + 8);
-          const x = Math.cos(angle) * radius + jitter;
-          const y = Math.sin(angle) * radius + jitter;
-          const box = getFrameBox(photo, x, y, rotation);
-
-          if (!placed.some(item => framesOverlap(box, item.box, gap))) {
-            chosen = { x, y, rotation, box };
-            break;
-          }
+    if(!chosen){
+      for(let ring=1;ring<180&&!chosen;ring++){
+        const radius=baseRadius*(.65+ring*.045);
+        const samples=Math.min(220,48+ring*2);
+        const offset=rng()*Math.PI*2;
+        for(let j=0;j<samples;j++){
+          const angle=offset+j/samples*Math.PI*2;
+          const jitter=(rng()-.5)*Math.min(12,gap+8);
+          const x=Math.cos(angle)*radius+jitter;
+          const y=Math.sin(angle)*radius+jitter;
+          const box=getFrameBox(photo,x,y,rotation);
+          if(!collides(box)){chosen={x,y,rotation,box};break;}
         }
       }
     }
 
-    // Last resort: continue outward until a free position is found.
-    // This avoids placing frames on top of one another.
-    if (!chosen) {
-      let ring = 160;
-
-      while (!chosen) {
-        const radius = baseRadius * (0.65 + ring * 0.045);
-        const samples = 48 + ring * 3;
-        const angleOffset = rng() * Math.PI * 2;
-
-        for (let j = 0; j < samples; j++) {
-          const angle =
-            angleOffset + (j / samples) * Math.PI * 2;
-
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
-          const box = getFrameBox(photo, x, y, rotation);
-
-          if (!placed.some(item => framesOverlap(box, item.box, gap))) {
-            chosen = { x, y, rotation, box };
-            break;
-          }
+    /* Deterministic outward fallback; grid keeps each test local. */
+    if(!chosen){
+      for(let ring=180;!chosen;ring++){
+        const radius=baseRadius*(.65+ring*.045);
+        const samples=220;
+        const offset=rng()*Math.PI*2;
+        for(let j=0;j<samples;j++){
+          const angle=offset+j/samples*Math.PI*2;
+          const x=Math.cos(angle)*radius,y=Math.sin(angle)*radius;
+          const box=getFrameBox(photo,x,y,rotation);
+          if(!collides(box)){chosen={x,y,rotation,box};break;}
         }
-
-        ring++;
       }
     }
 
-    placed.push({ photo, box: chosen.box });
-
-    photoPositions.set(getPhotoKey(photo), {
-      x: chosen.x,
-      y: chosen.y,
-      rotation: chosen.rotation
+    add(photo,chosen.box);
+    photoPositions.set(getPhotoKey(photo),{
+      x:chosen.x,y:chosen.y,rotation:chosen.rotation
     });
   });
 }
 
-/* Pan and zoom transform */
 function applyTransform() {
-  world.style.transform =
-    `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+  world.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`;
 }
-
 function scheduleTransform() {
-  if (transformFrame) return;
-
-  transformFrame = requestAnimationFrame(() => {
-    transformFrame = 0;
+  if(transformFrame)return;
+  transformFrame=requestAnimationFrame(()=>{
+    transformFrame=0;
     applyTransform();
   });
 }
@@ -933,947 +633,569 @@ function scheduleTransform() {
 /* Authentication UI */
 function closeSettingsMenu() {
   $("settingsDropdown").classList.add("hidden");
-  $("moreMenuBtn").setAttribute("aria-expanded", "false");
+  $("moreMenuBtn").setAttribute("aria-expanded","false");
 }
-
 function updateAuthUI() {
-  $("loginBtn").classList.toggle("hidden", !!session);
-  $("uploadBtn").classList.toggle("hidden", !session);
-  $("titleBtn").classList.toggle("hidden", !session);
-  $("logoutBtn").classList.toggle("hidden", !session);
-  $("settingsMenu").classList.toggle("hidden", !session);
-  document.body.classList.toggle("editing", !!session);
-
-  if (!session) closeSettingsMenu();
+  $("loginBtn").classList.toggle("hidden",!!session);
+  $("uploadBtn").classList.toggle("hidden",!session);
+  $("titleBtn").classList.toggle("hidden",!session);
+  $("logoutBtn").classList.toggle("hidden",!session);
+  $("settingsMenu").classList.toggle("hidden",!session);
+  document.body.classList.toggle("editing",!!session);
+  if(!session)closeSettingsMenu();
 }
 
-/* Render the photo wall */
-let renderVersion = 0;
-
-async function render(animate = true) {
-  const thisRender = ++renderVersion;
-
+/* Render all photo cards; image requests are lazy and use thumbnails. */
+async function render(animate=true) {
+  const version=++renderVersion;
+  updateCapacityBar();
   await loadPhotoDimensions();
-
-  if (thisRender !== renderVersion) return;
+  if(version!==renderVersion)return;
 
   createRandomCircularLayout();
+  const fragment=document.createDocumentFragment();
 
-  const fragment = document.createDocumentFragment();
+  for(let index=0;index<photos.length;index++){
+    const photo=photos[index];
+    const pos=photoPositions.get(getPhotoKey(photo));
+    if(!pos)continue;
 
-  photos.forEach((photo, index) => {
-    const pos = photoPositions.get(getPhotoKey(photo));
-    if (!pos) return;
+    const width=cardWidth(photo),ratio=photoRatio(photo),height=cardHeight(photo);
+    const card=document.createElement("article");
+    card.className="card";
+    card.style.setProperty("--card-width",`${width}px`);
+    card.style.setProperty("--photo-ratio",String(ratio));
+    card.style.left=`${pos.x-width/2}px`;
+    card.style.top=`${pos.y-height/2}px`;
+    card.style.setProperty("--rot",`${pos.rotation}deg`);
+    card.style.setProperty("--from-x",`${-pos.x}px`);
+    card.style.setProperty("--from-y",`${-pos.y}px`);
+    card.style.setProperty("--delay",animate?`${Math.min(index*5,250)}ms`:"0ms");
+    card.dataset.id=String(photo.id);
 
-    const width = cardWidth(photo);
-    const ratio = photoRatio(photo);
-    const height = cardHeight(photo);
-    const card = document.createElement("article");
+    const img=document.createElement("img");
+    img.alt="Our memory";
+    img.loading="lazy";
+    img.decoding="async";
+    img.draggable=false;
+    img.src=displayUrl(photo);
+    img.dataset.original=originalUrl(photo);
 
-    card.className = "card";
-    card.style.setProperty("--card-width", `${width}px`);
-    card.style.setProperty("--photo-ratio", `${ratio}`);
-    card.style.left = `${pos.x - width / 2}px`;
-    card.style.top = `${pos.y - height / 2}px`;
+    const date=document.createElement("div");
+    date.className="date";
+    date.textContent=niceDate(photo.captured_at);
 
-    card.style.setProperty("--rot", `${pos.rotation}deg`);
-    card.style.setProperty("--from-x", `${-pos.x}px`);
-    card.style.setProperty("--from-y", `${-pos.y}px`);
-    card.style.setProperty(
-      "--delay",
-      animate ? `${Math.min(index * 18, 700)}ms` : "0ms"
-    );
+    const tools=document.createElement("div");
+    tools.className="card-tools";
+    tools.innerHTML=
+      '<button type="button" data-action="view">View</button>'+
+      '<button type="button" data-action="date">Date</button>'+
+      '<button type="button" data-action="delete" class="danger">Remove</button>';
 
-    card.dataset.id = photo.id;
-    const url = fileUrl(photo.storage_path);
-
-    card.innerHTML = `
-      <img src="${esc(url)}" alt="Our memory"
-        loading="lazy" decoding="async" draggable="false">
-      <div class="date">${esc(niceDate(photo.captured_at))}</div>
-      <div class="card-tools">
-        <button type="button" data-action="view">View</button>
-        <button type="button" data-action="date">Date</button>
-        <button type="button" data-action="delete" class="danger">Remove</button>
-      </div>
-    `;
-
-    card.addEventListener("click", event => {
-      const button = event.target.closest("button[data-action]");
-      if (!button) return;
-
-      event.stopPropagation();
-
-      const action = button.dataset.action;
-      if (action === "view") openViewer(url);
-      if (action === "date") editDate(photo);
-      if (action === "delete") removePhoto(photo);
-    });
-
+    card.append(img,date,tools);
     fragment.appendChild(card);
-  });
+  }
 
   world.replaceChildren(fragment);
-  $("empty").style.display = photos.length ? "none" : "flex";
+  $("empty").style.display=photos.length?"none":"flex";
   applyTransform();
+  updateCapacityBar();
 }
 
 async function loadPhotos() {
-  if (!db) {
-    status("Supabase is not configured.");
-    return;
-  }
-
+  if(!db){status("Supabase is not configured.");return;}
   status("Gathering our memories…");
-
-  const { data, error } = await db
-    .from("photos")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  if (error) {
-    status("Couldn't load photos: " + error.message);
-    console.error(error);
-    return;
-  }
-
-  photos = data || [];
-  await render(true);
-
-  status(
-    photos.length
-      ? `${photos.length} memories in our little universe 💗`
-      : "Your universe is ready for its first memory ☁️"
-  );
+  const {data,error}=await db.from("photos").select("*").order("sort_order",{ascending:true});
+  if(error){status("Couldn't load photos: "+error.message);console.error(error);return;}
+  photos=data||[];
+  await render(false);
+  status(photos.length
+    ?`${photos.length} memories in our little universe 💗`
+    :"Your universe is ready for its first memory ☁️");
 }
 
 /* Settings menu */
 function openSettingsMenu() {
   $("settingsDropdown").classList.remove("hidden");
-  $("moreMenuBtn").setAttribute("aria-expanded", "true");
+  $("moreMenuBtn").setAttribute("aria-expanded","true");
 }
-
-$("moreMenuBtn").addEventListener("click", event => {
+$("moreMenuBtn").addEventListener("click",event=>{
   event.stopPropagation();
-
-  if ($("settingsDropdown").classList.contains("hidden")) {
-    openSettingsMenu();
-  } else {
-    closeSettingsMenu();
-  }
+  $("settingsDropdown").classList.contains("hidden")?openSettingsMenu():closeSettingsMenu();
+});
+$("settingsDropdown").addEventListener("click",event=>event.stopPropagation());
+document.addEventListener("click",event=>{
+  if(!$("settingsMenu").contains(event.target))closeSettingsMenu();
 });
 
-$("settingsDropdown").addEventListener("click", event => event.stopPropagation());
-
-document.addEventListener("click", event => {
-  if (!$("settingsMenu").contains(event.target)) closeSettingsMenu();
-});
-
-/* Individual photo viewer */
-let viewerScale = 1;
-let viewerX = 0;
-let viewerY = 0;
-let viewerPointers = new Map();
-let viewerGesture = null;
-let viewerDragged = false;
+/* Viewer */
+let viewerScale=1,viewerX=0,viewerY=0;
+let viewerPointers=new Map(),viewerGesture=null;
 
 function updateViewerTransform() {
-  const image = $("viewerContent").querySelector("img");
-  if (!image) return;
-
-  image.style.transform =
-    `translate(${viewerX}px, ${viewerY}px) scale(${viewerScale})`;
+  const image=$("viewerContent").querySelector("img");
+  if(image)image.style.transform=`translate(${viewerX}px,${viewerY}px) scale(${viewerScale})`;
 }
+function resetViewerZoom(){viewerScale=1;viewerX=0;viewerY=0;updateViewerTransform();}
 
-function resetViewerZoom() {
-  viewerScale = 1;
-  viewerX = 0;
-  viewerY = 0;
-  updateViewerTransform();
-}
-
-function openViewer(url) {
+function openViewer(photo) {
   closeSettingsMenu();
-
-  $("viewerContent").innerHTML = `
-    <img src="${esc(url)}" decoding="async" alt="Our memory" draggable="false">
-  `;
-
-  viewerScale = 1;
-  viewerX = 0;
-  viewerY = 0;
-  viewerPointers.clear();
-  viewerGesture = null;
-  viewerDragged = false;
-
+  const content=$("viewerContent");
+  content.replaceChildren();
+  const img=new Image();
+  img.alt="Our memory";
+  img.draggable=false;
+  img.decoding="async";
+  img.src=originalUrl(photo);
+  img.addEventListener("error",()=>{
+    if(photo.thumbnail_path)status("Couldn't load the original photo. Try again.");
+  });
+  content.appendChild(img);
+  viewerScale=1;viewerX=0;viewerY=0;
+  viewerPointers.clear();viewerGesture=null;
   $("viewer").classList.add("open");
-
-  const image = $("viewerContent").querySelector("img");
-  image.addEventListener("load", updateViewerTransform);
-
-  image.addEventListener("dblclick", event => {
+  img.addEventListener("load",updateViewerTransform);
+  img.addEventListener("dblclick",event=>{
     event.preventDefault();
-
-    if (viewerScale > 1) resetViewerZoom();
-    else {
-      viewerScale = 2;
-      updateViewerTransform();
-    }
+    if(viewerScale>1)resetViewerZoom();
+    else{viewerScale=2;updateViewerTransform();}
   });
 }
-
 function closeViewer() {
   $("viewer").classList.remove("open");
-  $("viewerContent").innerHTML = "";
-  viewerPointers.clear();
-  viewerGesture = null;
+  $("viewerContent").replaceChildren();
+  viewerPointers.clear();viewerGesture=null;
 }
-
-$("viewerClose").onclick = closeViewer;
-
-$("viewer").addEventListener("click", event => {
-  if (event.target === $("viewer")) closeViewer();
+$("viewerClose").onclick=closeViewer;
+$("viewer").addEventListener("click",event=>{
+  if(event.target===$("viewer"))closeViewer();
 });
-
-$("viewerContent").addEventListener("wheel", event => {
+$("viewerContent").addEventListener("wheel",event=>{
   event.preventDefault();
-
-  const oldScale = viewerScale;
-  const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
-  viewerScale = Math.max(1, Math.min(6, viewerScale * factor));
-
-  const rect = $("viewerContent").getBoundingClientRect();
-  const px = event.clientX - rect.left - rect.width / 2;
-  const py = event.clientY - rect.top - rect.height / 2;
-  const ratio = viewerScale / oldScale;
-
-  viewerX = px - (px - viewerX) * ratio;
-  viewerY = py - (py - viewerY) * ratio;
-
+  const old=viewerScale;
+  viewerScale=Math.max(1,Math.min(6,viewerScale*(event.deltaY<0?1.15:1/1.15)));
+  const rect=$("viewerContent").getBoundingClientRect();
+  const px=event.clientX-rect.left-rect.width/2;
+  const py=event.clientY-rect.top-rect.height/2;
+  const ratio=viewerScale/old;
+  viewerX=px-(px-viewerX)*ratio;
+  viewerY=py-(py-viewerY)*ratio;
   updateViewerTransform();
-}, { passive: false });
+},{passive:false});
 
-function viewerDistance(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
+function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function midpoint(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2};}
 
-function viewerMidpoint(a, b) {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-}
-
-$("viewerContent").addEventListener("pointerdown", event => {
-  if (event.button !== undefined && event.button !== 0) return;
-
+$("viewerContent").addEventListener("pointerdown",event=>{
+  if(event.button!==undefined&&event.button!==0)return;
   event.preventDefault();
   $("viewerContent").setPointerCapture(event.pointerId);
-
-  viewerPointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
-
-  viewerDragged = false;
-
-  if (viewerPointers.size === 1) {
-    viewerGesture = {
-      type: "drag",
-      x: event.clientX,
-      y: event.clientY,
-      viewerX,
-      viewerY
+  viewerPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(viewerPointers.size===1){
+    viewerGesture={type:"drag",x:event.clientX,y:event.clientY,vx:viewerX,vy:viewerY};
+  }else if(viewerPointers.size===2){
+    const points=[...viewerPointers.values()];
+    viewerGesture={
+      type:"pinch",distance:distance(points[0],points[1]),scale:viewerScale,
+      mid:midpoint(points[0],points[1]),vx:viewerX,vy:viewerY
     };
-  } else if (viewerPointers.size === 2) {
-    const points = [...viewerPointers.values()];
-
-    viewerGesture = {
-      type: "pinch",
-      distance: viewerDistance(points[0], points[1]),
-      scale: viewerScale,
-      midpoint: viewerMidpoint(points[0], points[1]),
-      viewerX,
-      viewerY
-    };
-
-    viewerDragged = true;
   }
 });
-
-$("viewerContent").addEventListener("pointermove", event => {
-  if (!viewerPointers.has(event.pointerId)) return;
-
-  viewerPointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
-
-  if (!viewerGesture) return;
-
-  if (viewerPointers.size >= 2 && viewerGesture.type === "pinch") {
-    const points = [...viewerPointers.values()];
-    const distance = viewerDistance(points[0], points[1]);
-    const midpoint = viewerMidpoint(points[0], points[1]);
-
-    if (viewerGesture.distance > 0) {
-      const oldScale = viewerScale;
-
-      viewerScale = Math.max(1, Math.min(
-        6,
-        viewerGesture.scale * distance / viewerGesture.distance
-      ));
-
-      const ratio = viewerScale / oldScale;
-      const rect = $("viewerContent").getBoundingClientRect();
-      const px = midpoint.x - rect.left - rect.width / 2;
-      const py = midpoint.y - rect.top - rect.height / 2;
-
-      viewerX = px - (px - viewerGesture.viewerX) * ratio;
-      viewerY = py - (py - viewerGesture.viewerY) * ratio;
-      updateViewerTransform();
-    }
-
-    viewerDragged = true;
-    return;
-  }
-
-  if (viewerPointers.size === 1 && viewerGesture.type === "drag") {
-    const dx = event.clientX - viewerGesture.x;
-    const dy = event.clientY - viewerGesture.y;
-
-    if (Math.hypot(dx, dy) > 3) viewerDragged = true;
-
-    if (viewerScale > 1) {
-      viewerX = viewerGesture.viewerX + dx;
-      viewerY = viewerGesture.viewerY + dy;
-      updateViewerTransform();
-    }
+$("viewerContent").addEventListener("pointermove",event=>{
+  if(!viewerPointers.has(event.pointerId))return;
+  viewerPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(!viewerGesture)return;
+  if(viewerPointers.size>=2&&viewerGesture.type==="pinch"){
+    const points=[...viewerPointers.values()];
+    const dist=distance(points[0],points[1]);
+    const mid=midpoint(points[0],points[1]);
+    const old=viewerScale;
+    viewerScale=Math.max(1,Math.min(6,viewerGesture.scale*dist/Math.max(1,viewerGesture.distance)));
+    const ratio=viewerScale/old;
+    const rect=$("viewerContent").getBoundingClientRect();
+    const px=mid.x-rect.left-rect.width/2,py=mid.y-rect.top-rect.height/2;
+    viewerX=px-(px-viewerGesture.vx)*ratio;
+    viewerY=py-(py-viewerGesture.vy)*ratio;
+    updateViewerTransform();
+  }else if(viewerPointers.size===1&&viewerGesture.type==="drag"&&viewerScale>1){
+    viewerX=viewerGesture.vx+event.clientX-viewerGesture.x;
+    viewerY=viewerGesture.vy+event.clientY-viewerGesture.y;
+    updateViewerTransform();
   }
 });
-
-function endViewerPointer(event) {
-  if (!viewerPointers.has(event.pointerId)) return;
-
+function endViewerPointer(event){
+  if(!viewerPointers.has(event.pointerId))return;
   viewerPointers.delete(event.pointerId);
-
-  if (viewerPointers.size === 1) {
-    const point = [...viewerPointers.values()][0];
-
-    viewerGesture = {
-      type: "drag",
-      x: point.x,
-      y: point.y,
-      viewerX,
-      viewerY
-    };
-  } else {
-    viewerGesture = null;
-  }
+  if(viewerPointers.size===1){
+    const p=[...viewerPointers.values()][0];
+    viewerGesture={type:"drag",x:p.x,y:p.y,vx:viewerX,vy:viewerY};
+  }else viewerGesture=null;
 }
-
-$("viewerContent").addEventListener("pointerup", endViewerPointer);
-$("viewerContent").addEventListener("pointercancel", endViewerPointer);
+$("viewerContent").addEventListener("pointerup",endViewerPointer);
+$("viewerContent").addEventListener("pointercancel",endViewerPointer);
 
 /* Login */
-$("loginBtn").onclick = () => {
-  $("modal").classList.add("open");
-  $("email").focus();
-};
-
-$("cancelModal").onclick = () => $("modal").classList.remove("open");
-
-$("modal").addEventListener("click", event => {
-  if (event.target === $("modal")) $("modal").classList.remove("open");
+$("loginBtn").onclick=()=>{$("modal").classList.add("open");$("email").focus();};
+$("cancelModal").onclick=()=>$("modal").classList.remove("open");
+$("modal").addEventListener("click",event=>{
+  if(event.target===$("modal"))$("modal").classList.remove("open");
 });
 
-$("submitLogin").onclick = async () => {
-  if (!db) {
-    status("Supabase is not configured.");
-    return;
-  }
-
-  const email = $("email").value.trim();
-  const password = $("password").value;
-
-  if (!email || !password) {
-    status("Enter your email and password.");
-    return;
-  }
-
-  $("submitLogin").disabled = true;
-  status("Signing in…");
-
-  try {
-    const { data, error } = await db.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) throw error;
-
-    session = data.session;
+$("submitLogin").onclick=async()=>{
+  if(!db){status("Supabase is not configured.");return;}
+  const email=$("email").value.trim(),password=$("password").value;
+  if(!email||!password){status("Enter your email and password.");return;}
+  $("submitLogin").disabled=true;status("Signing in…");
+  try{
+    const {data,error}=await db.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    session=data.session;
     $("modal").classList.remove("open");
     updateAuthUI();
-    await render(false);
     await loadPhotos();
     status("Welcome back ☁️");
-  } catch (error) {
-    status("Sign-in failed: " + (error.message || String(error)));
-  } finally {
-    $("submitLogin").disabled = false;
-  }
+  }catch(error){status("Sign-in failed: "+(error.message||String(error)));}
+  finally{$("submitLogin").disabled=false;}
 };
-
-$("password").addEventListener("keydown", event => {
-  if (event.key === "Enter") $("submitLogin").click();
+$("password").addEventListener("keydown",event=>{
+  if(event.key==="Enter")$("submitLogin").click();
 });
 
-$("logoutBtn").onclick = async () => {
-  const { error } = await db.auth.signOut();
-
-  if (error) {
-    status("Sign-out failed: " + error.message);
-    return;
-  }
-
-  session = null;
-  updateAuthUI();
-  await render(false);
+$("logoutBtn").onclick=async()=>{
+  const {error}=await db.auth.signOut();
+  if(error){status("Sign-out failed: "+error.message);return;}
+  session=null;updateAuthUI();await render(false);
   status("Signed out. Enjoy the memories 💗");
 };
 
-/* Upload photos */
-$("uploadBtn").onclick = () => $("fileInput").click();
+/* Uploads */
+$("uploadBtn").onclick=()=>{
+  if(photos.length>=MAX_PHOTOS){status(`Photo board full! Maximum: ${MAX_PHOTOS} photos.`);return;}
+  $("fileInput").click();
+};
 
-$("fileInput").onchange = async event => {
-  const files = Array.from(event.target.files || []);
-  event.target.value = "";
+$("fileInput").onchange=async event=>{
+  const files=Array.from(event.target.files||[]);
+  event.target.value="";
+  if(!session||!files.length)return;
+  if(busy){status("An upload is already running…");return;}
+  if(photos.length>=MAX_PHOTOS){status(`Photo board full! Maximum: ${MAX_PHOTOS} photos.`);return;}
 
-  if (!session || !files.length) return;
+  busy=true;
+  let added=0,skipped=0,failed=0,lastError="";
+  const knownHashes=new Set(photos.map(p=>p.content_sha256).filter(Boolean));
 
-  if (busy) {
-    status("An upload is already running…");
-    return;
-  }
+  try{
+    for(let i=0;i<files.length;i++){
+      if(photos.length>=MAX_PHOTOS){
+        skipped+=files.length-i;
+        status(`Photo board full! Maximum: ${MAX_PHOTOS} photos.`);
+        break;
+      }
 
-  busy = true;
-  let added = 0;
-  let skipped = 0;
-  let failed = 0;
-  let lastError = "";
+      const file=files[i];
+      let originalPath=null,thumbPath=null;
 
-  try {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      try{
+        if(!file.type.startsWith("image/"))throw new Error(`${file.name} is not an image.`);
+        if(file.size>MAX_FILE_BYTES)throw new Error(`${file.name} is larger than 20 MB.`);
+        status(`Preparing photo ${i+1} of ${files.length}…`);
 
-      try {
-        if (!file.type.startsWith("image/")) {
-          throw new Error("Please choose image files.");
-        }
+        const digest=await hashFile(file);
+        if(knownHashes.has(digest)){skipped++;continue;}
 
-        if (file.size > 20 * 1024 * 1024) {
-          throw new Error(`${file.name} is larger than 20 MB.`);
-        }
+        const thumbnail=await createThumbnail(file);
+        const id=crypto.randomUUID();
+        const folder=session.user.id;
+        originalPath=`${folder}/${Date.now()}-${id}-original`;
+        thumbPath=`${folder}/${Date.now()}-${id}-thumb.webp`;
 
-        status(`Adding memory ${i + 1} of ${files.length}…`);
-        const digest = await hashFile(file);
+        status(`Uploading photo ${i+1} of ${files.length}…`);
 
-        if (photos.some(photo => photo.content_sha256 === digest)) {
-          skipped++;
-          continue;
-        }
+        const originalResult=await db.storage.from(BUCKET).upload(originalPath,file,{
+          contentType:file.type,upsert:false
+        });
+        if(originalResult.error)throw new Error("Original upload: "+originalResult.error.message);
 
-        // Read original dimensions so new photos have the correct
-        // orientation as soon as they are added.
-        let imageWidth = null;
-        let imageHeight = null;
+        const thumbResult=await db.storage.from(BUCKET).upload(thumbPath,thumbnail.blob,{
+          contentType:"image/webp",upsert:false
+        });
+        if(thumbResult.error)throw new Error("Thumbnail upload: "+thumbResult.error.message);
 
-        try {
-          const bitmap = await createImageBitmap(file);
-          imageWidth = bitmap.width;
-          imageHeight = bitmap.height;
-          bitmap.close();
-        } catch (dimensionError) {
-          console.warn("Could not read image dimensions:", dimensionError);
-        }
+        const modifiedDate=file.lastModified?new Date(file.lastModified):null;
+        const insertRow={
+          storage_path:originalPath,
+          thumbnail_path:thumbPath,
+          original_filename:file.name,
+          caption:"",
+          captured_at:modifiedDate?modifiedDate.toISOString():null,
+          x:0,y:0,width:thumbnail.width,height:thumbnail.height,
+          content_sha256:digest
+        };
 
-        const extension = (file.name.split(".").pop() || "jpg")
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "")
-          .slice(0, 8) || "jpg";
+        const {data:row,error:rowError}=await db.from("photos")
+          .insert(insertRow).select().single();
 
-        const path =
-          `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-
-        const { error: uploadError } = await db.storage
-          .from(BUCKET)
-          .upload(path, file, {
-            contentType: file.type,
-            upsert: false
-          });
-
-        if (uploadError) {
-          throw new Error("Storage upload: " + uploadError.message);
-        }
-
-        const modifiedDate = file.lastModified
-          ? new Date(file.lastModified)
-          : null;
-
-        const { data: row, error: rowError } = await db
-          .from("photos")
-          .insert({
-            storage_path: path,
-            original_filename: file.name,
-            caption: "",
-            captured_at: modifiedDate ? modifiedDate.toISOString() : null,
-            x: 0,
-            y: 0,
-            width: imageWidth,
-            height: imageHeight,
-            content_sha256: digest
-          })
-          .select()
-          .single();
-
-        if (rowError) {
-          await db.storage.from(BUCKET).remove([path]);
-          throw new Error("Database insert: " + rowError.message);
-        }
+        if(rowError)throw new Error("Database insert: "+rowError.message);
 
         photos.push(row);
-
-        if (imageWidth && imageHeight) {
-          photoDimensions.set(getPhotoKey(row), {
-            width: imageWidth,
-            height: imageHeight,
-            ratio: imageWidth / imageHeight
-          });
-        }
-
+        photoDimensions.set(getPhotoKey(row),{
+          width:thumbnail.width,height:thumbnail.height,
+          ratio:thumbnail.width/thumbnail.height
+        });
+        knownHashes.add(digest);
         added++;
-      } catch (error) {
-        console.error("Photo upload failed:", error);
+        updateCapacityBar();
+      }catch(error){
+        console.error("Photo upload failed:",error);
         failed++;
-        lastError = error?.message || String(error);
+        lastError=error?.message||String(error);
+        /* Best-effort cleanup if upload succeeded but a later step failed. */
+        const cleanup=[];
+        if(originalPath)cleanup.push(originalPath);
+        if(thumbPath)cleanup.push(thumbPath);
+        if(cleanup.length){
+          try{await db.storage.from(BUCKET).remove(cleanup);}catch(cleanupError){
+            console.warn("Storage cleanup failed:",cleanupError);
+          }
+        }
       }
     }
-  } finally {
-    busy = false;
+  }finally{
+    busy=false;
     await render(true);
   }
 
-  if (lastError) {
-    status(
-      `Upload finished: added ${added}, duplicates skipped ${skipped}, ` +
-      `failed ${failed}. ${lastError}`
-    );
-  } else {
-    status(
-      `Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`
-    );
-  }
+  status(lastError
+    ?`Upload finished: added ${added}, duplicates skipped ${skipped}, failed ${failed}. ${lastError}`
+    :`Done 💗 Added ${added}; duplicates skipped ${skipped}; failed ${failed}.`);
 };
 
 /* Edit photo date */
-async function editDate(photo) {
-  if (busy) {
-    status("Please wait for the current task to finish.");
-    return;
+async function editDate(photo){
+  if(busy){status("Please wait for the current task to finish.");return;}
+  const current=photo.captured_at?new Date(photo.captured_at).toISOString().slice(0,10):"";
+  const input=prompt("Enter the photo's date (YYYY-MM-DD):",current);
+  if(input===null)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(input)){status("Please use YYYY-MM-DD.");return;}
+  const date=new Date(input+"T12:00:00");
+  if(isNaN(date.getTime())||date.toISOString().slice(0,10)!==input){
+    status("That date doesn't look valid.");return;
   }
-
-  const current = photo.captured_at
-    ? new Date(photo.captured_at).toISOString().slice(0, 10)
-    : "";
-
-  const input = prompt(
-    "Enter the photo's modified date (YYYY-MM-DD):",
-    current
-  );
-
-  if (input === null) return;
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-    status("Please use the date format YYYY-MM-DD.");
-    return;
-  }
-
-  const date = new Date(input + "T12:00:00");
-
-  if (isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== input) {
-    status("That date doesn't look valid.");
-    return;
-  }
-
-  const { error } = await db.from("photos")
-    .update({ captured_at: date.toISOString() })
-    .eq("id", photo.id);
-
-  if (error) {
-    status("Couldn't update date: " + error.message);
-    return;
-  }
-
-  photo.captured_at = date.toISOString();
+  const {error}=await db.from("photos").update({captured_at:date.toISOString()}).eq("id",photo.id);
+  if(error){status("Couldn't update date: "+error.message);return;}
+  photo.captured_at=date.toISOString();
   await render(false);
   status("Photo date updated ✨");
 }
 
 /* Delete one photo */
-async function removePhoto(photo) {
-  if (busy) {
-    status("Please wait for the current task to finish.");
-    return;
-  }
-
-  if (!confirm("Remove this memory from the wall? This cannot be undone.")) {
-    return;
-  }
-
-  busy = true;
-
-  try {
-    const { error: rowError } = await db.from("photos")
-      .delete()
-      .eq("id", photo.id);
-
-    if (rowError) throw rowError;
-
-    const { error: storageError } = await db.storage
-      .from(BUCKET)
-      .remove([photo.storage_path]);
-
-    photos = photos.filter(item => item.id !== photo.id);
+async function removePhoto(photo){
+  if(busy){status("Please wait for the current task to finish.");return;}
+  if(!confirm("Remove this memory from the wall? This cannot be undone."))return;
+  busy=true;
+  try{
+    const {error:rowError}=await db.from("photos").delete().eq("id",photo.id);
+    if(rowError)throw rowError;
+    photos=photos.filter(item=>String(item.id)!==String(photo.id));
     photoDimensions.delete(getPhotoKey(photo));
-
     await render(false);
 
+    const paths=[photo.storage_path,photo.thumbnail_path].filter(Boolean);
+    const {error:storageError}=await db.storage.from(BUCKET).remove(paths);
     status(storageError
-      ? "Photo record removed, but storage cleanup may need attention."
-      : "Memory removed 💗");
-  } catch (error) {
-    status("Couldn't remove photo: " + error.message);
-  } finally {
-    busy = false;
-  }
+      ?"Photo record removed, but storage cleanup may need attention."
+      :"Memory removed 💗");
+  }catch(error){status("Couldn't remove photo: "+error.message);}
+  finally{busy=false;}
 }
 
 /* Delete all photos */
-$("deleteAllBtn").addEventListener("click", async () => {
+$("deleteAllBtn").addEventListener("click",async()=>{
   closeSettingsMenu();
-
-  if (!session) {
-    status("Please sign in first.");
-    return;
+  if(!session){status("Please sign in first.");return;}
+  if(busy){status("Please wait for the current task to finish.");return;}
+  if(!photos.length){status("There are no photos to delete.");return;}
+  if(!confirm(`⚠️ Delete ALL ${photos.length} photos from your photo wall?\n\nThis cannot be undone.`)){
+    status("Delete all cancelled.");return;
   }
 
-  if (busy) {
-    status("Please wait for the current task to finish.");
-    return;
-  }
+  const deleting=[...photos];
+  const ids=deleting.map(p=>p.id);
+  const paths=deleting.flatMap(p=>[p.storage_path,p.thumbnail_path].filter(Boolean));
+  busy=true;$("deleteAllBtn").disabled=true;$("moreMenuBtn").disabled=true;
 
-  if (!photos.length) {
-    status("There are no photos to delete.");
-    return;
-  }
+  try{
+    status(`Removing ${deleting.length} photo records…`);
+    const {error}=await db.from("photos").delete().in("id",ids);
+    if(error)throw new Error("Couldn't delete photo records: "+error.message);
 
-  if (!confirm(
-    `⚠️ Delete ALL ${photos.length} photos from your photo wall?\n\n` +
-    "This cannot be undone. The photo records and stored files will be removed."
-  )) {
-    status("Delete all cancelled.");
-    return;
-  }
-
-  const photosToDelete = [...photos];
-  const ids = photosToDelete.map(photo => photo.id);
-  const paths = photosToDelete.map(photo => photo.storage_path);
-
-  busy = true;
-  $("deleteAllBtn").disabled = true;
-  $("moreMenuBtn").disabled = true;
-
-  try {
-    status(`Removing ${photosToDelete.length} photo records…`);
-
-    const { error: rowError } = await db.from("photos")
-      .delete()
-      .in("id", ids);
-
-    if (rowError) {
-      throw new Error("Couldn't delete photo records: " + rowError.message);
-    }
-
-    photos = photos.filter(photo => !ids.includes(photo.id));
-
-    for (const photo of photosToDelete) {
-      photoDimensions.delete(getPhotoKey(photo));
-    }
-
+    photos=photos.filter(p=>!ids.some(id=>String(id)===String(p.id)));
+    deleting.forEach(p=>photoDimensions.delete(getPhotoKey(p)));
     await render(false);
 
-    let storageFailures = 0;
-    let firstStorageError = "";
-
-    for (let i = 0; i < paths.length; i += 100) {
-      const batch = paths.slice(i, i + 100);
-      const { error: storageError } = await db.storage
-        .from(BUCKET)
-        .remove(batch);
-
-      if (storageError) {
-        storageFailures += batch.length;
-        if (!firstStorageError) firstStorageError = storageError.message;
-      }
+    let storageFailed=false,firstError="";
+    for(let i=0;i<paths.length;i+=100){
+      const {error:storageError}=await db.storage.from(BUCKET).remove(paths.slice(i,i+100));
+      if(storageError){storageFailed=true;if(!firstError)firstError=storageError.message;}
     }
-
-    if (storageFailures) {
-      status(
-        `The wall is cleared, but storage cleanup failed for one or more ` +
-        `batches. Supabase: ${firstStorageError}`
-      );
-    } else {
-      status(`All ${photosToDelete.length} photos deleted. Your wall is clear ☁️`);
-    }
-  } catch (error) {
-    console.error("Delete all failed:", error);
-    status(error.message || "Delete all failed. Please try again.");
-  } finally {
-    busy = false;
-    $("deleteAllBtn").disabled = false;
-    $("moreMenuBtn").disabled = false;
+    status(storageFailed
+      ?`The wall is clear, but some files could not be removed: ${firstError}`
+      :`All ${deleting.length} photos deleted. Your wall is clear ☁️`);
+  }catch(error){
+    console.error("Delete all failed:",error);
+    status(error.message||"Delete all failed. Please try again.");
+  }finally{
+    busy=false;$("deleteAllBtn").disabled=false;$("moreMenuBtn").disabled=false;
   }
 });
 
 /* Change wall title on this device */
-$("titleBtn").onclick = () => {
-  const current = $("wallTitle").textContent;
-  const next = prompt("Give your photo wall a title:", current);
-
-  if (!next || !next.trim()) return;
-
-  $("wallTitle").textContent = next.trim();
-  localStorage.setItem("photoWallTitle", next.trim());
+$("titleBtn").onclick=()=>{
+  const current=$("wallTitle").textContent;
+  const next=prompt("Give your photo wall a title:",current);
+  if(!next||!next.trim())return;
+  $("wallTitle").textContent=next.trim();
+  localStorage.setItem("photoWallTitle",next.trim());
   status("Wall title changed on this device.");
 };
+const savedTitle=localStorage.getItem("photoWallTitle");
+if(savedTitle)$("wallTitle").textContent=savedTitle;
 
-const savedTitle = localStorage.getItem("photoWallTitle");
-if (savedTitle) $("wallTitle").textContent = savedTitle;
+/* Pan and pinch zoom */
+const activePointers=new Map();
+let pointerStart=null,pinchState=null,movedDuringGesture=false,suppressClickUntil=0;
 
-/* Pan and pinch-to-zoom */
-const activePointers = new Map();
-let pointerStart = null;
-let pinchState = null;
-let movedDuringGesture = false;
-let suppressClickUntil = 0;
-
-function pointerDistance(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function pointerMidpoint(a, b) {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-}
-
-stage.addEventListener("pointerdown", event => {
-  if (event.button !== undefined && event.button !== 0) return;
-  if (event.target.closest("button, input, a, select, textarea")) return;
-
+stage.addEventListener("pointerdown",event=>{
+  if(event.button!==undefined&&event.button!==0)return;
+  if(event.target.closest("button,input,a,select,textarea"))return;
   stage.setPointerCapture(event.pointerId);
-  activePointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
+  activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
 
-  if (activePointers.size === 1) {
-    pointerStart = {
-      x: event.clientX,
-      y: event.clientY,
-      tx,
-      ty
+  if(activePointers.size===1){
+    pointerStart={x:event.clientX,y:event.clientY,tx,ty};
+    pinchState=null;movedDuringGesture=false;stage.classList.add("dragging");
+  }else if(activePointers.size===2){
+    const points=[...activePointers.values()];
+    pointerStart=null;
+    pinchState={
+      distance:distance(points[0],points[1]),scale,
+      mid:midpoint(points[0],points[1]),tx,ty
     };
-
-    pinchState = null;
-    movedDuringGesture = false;
-    stage.classList.add("dragging");
-  } else if (activePointers.size === 2) {
-    const points = [...activePointers.values()];
-
-    pointerStart = null;
-    pinchState = {
-      distance: pointerDistance(points[0], points[1]),
-      scale,
-      midpoint: pointerMidpoint(points[0], points[1]),
-      tx,
-      ty
-    };
-
-    movedDuringGesture = true;
+    movedDuringGesture=true;
   }
 });
+stage.addEventListener("pointermove",event=>{
+  if(!activePointers.has(event.pointerId))return;
+  activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
 
-stage.addEventListener("pointermove", event => {
-  if (!activePointers.has(event.pointerId)) return;
-
-  activePointers.set(event.pointerId, {
-    x: event.clientX,
-    y: event.clientY
-  });
-
-  if (activePointers.size >= 2) {
-    const points = [...activePointers.values()];
-    const midpoint = pointerMidpoint(points[0], points[1]);
-
-    if (!pinchState) {
-      pinchState = {
-        distance: pointerDistance(points[0], points[1]),
-        scale,
-        midpoint,
-        tx,
-        ty
-      };
+  if(activePointers.size>=2){
+    const points=[...activePointers.values()],mid=midpoint(points[0],points[1]);
+    if(!pinchState){
+      pinchState={distance:distance(points[0],points[1]),scale,mid,tx,ty};
       return;
     }
-
-    const distance = pointerDistance(points[0], points[1]);
-
-    if (pinchState.distance > 0) {
-      scale = Math.max(
-        0.2,
-        Math.min(3, pinchState.scale * distance / pinchState.distance)
-      );
-
-      tx = midpoint.x -
-        (pinchState.midpoint.x - pinchState.tx) * (scale / pinchState.scale);
-
-      ty = midpoint.y -
-        (pinchState.midpoint.y - pinchState.ty) * (scale / pinchState.scale);
-
+    const dist=distance(points[0],points[1]);
+    if(pinchState.distance>0){
+      scale=Math.max(.2,Math.min(3,pinchState.scale*dist/pinchState.distance));
+      tx=mid.x-(pinchState.mid.x-pinchState.tx)*(scale/pinchState.scale);
+      ty=mid.y-(pinchState.mid.y-pinchState.ty)*(scale/pinchState.scale);
       scheduleTransform();
     }
-
-    movedDuringGesture = true;
+    movedDuringGesture=true;
     return;
   }
 
-  if (pointerStart) {
-    const dx = event.clientX - pointerStart.x;
-    const dy = event.clientY - pointerStart.y;
-
-    if (Math.hypot(dx, dy) > 5) movedDuringGesture = true;
-
-    tx = pointerStart.tx + dx;
-    ty = pointerStart.ty + dy;
-    scheduleTransform();
+  if(pointerStart){
+    const dx=event.clientX-pointerStart.x,dy=event.clientY-pointerStart.y;
+    if(Math.hypot(dx,dy)>5)movedDuringGesture=true;
+    tx=pointerStart.tx+dx;ty=pointerStart.ty+dy;scheduleTransform();
   }
 });
-
-function endPointer(event) {
-  if (!activePointers.has(event.pointerId)) return;
-
-  const wasDragging = movedDuringGesture;
+function endPointer(event){
+  if(!activePointers.has(event.pointerId))return;
+  const dragged=movedDuringGesture;
   activePointers.delete(event.pointerId);
-
-  if (wasDragging) suppressClickUntil = Date.now() + 300;
-
-  pinchState = null;
-
-  if (activePointers.size === 1) {
-    const point = [...activePointers.values()][0];
-    pointerStart = { x: point.x, y: point.y, tx, ty };
-  } else {
-    pointerStart = null;
-  }
-
-  if (activePointers.size === 0) {
+  if(dragged)suppressClickUntil=Date.now()+300;
+  pinchState=null;
+  if(activePointers.size===1){
+    const p=[...activePointers.values()][0];
+    pointerStart={x:p.x,y:p.y,tx,ty};
+  }else pointerStart=null;
+  if(!activePointers.size){
     stage.classList.remove("dragging");
-    movedDuringGesture = false;
-    pinchState = null;
-    pointerStart = null;
+    movedDuringGesture=false;pinchState=null;pointerStart=null;
   }
 }
+stage.addEventListener("pointerup",endPointer);
+stage.addEventListener("pointercancel",endPointer);
 
-stage.addEventListener("pointerup", endPointer);
-stage.addEventListener("pointercancel", endPointer);
+/* Delegated click handling avoids one click listener per card. */
+world.addEventListener("click",event=>{
+  const button=event.target.closest("button[data-action]");
+  const card=event.target.closest(".card");
+  if(!card)return;
 
-/* Open photos on click, but not after a pan */
-world.addEventListener("click", event => {
-  const button = event.target.closest("button[data-action]");
-  if (button) return;
-
-  if (Date.now() < suppressClickUntil) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
+  if(button){
+    event.stopPropagation();
+    const photo=photos.find(p=>String(p.id)===card.dataset.id);
+    if(!photo)return;
+    if(button.dataset.action==="view")openViewer(photo);
+    if(button.dataset.action==="date")editDate(photo);
+    if(button.dataset.action==="delete")removePhoto(photo);
     return;
   }
 
-  const card = event.target.closest(".card");
-  if (!card) return;
+  if(Date.now()<suppressClickUntil){
+    event.preventDefault();event.stopImmediatePropagation();return;
+  }
+  const photo=photos.find(p=>String(p.id)===card.dataset.id);
+  if(photo)openViewer(photo);
+},true);
 
-  const photo = photos.find(item => item.id === card.dataset.id);
-  if (photo) openViewer(fileUrl(photo.storage_path));
-}, true);
-
-/* Mouse wheel zooms toward the cursor */
-stage.addEventListener("wheel", event => {
+stage.addEventListener("wheel",event=>{
   event.preventDefault();
-
-  const oldScale = scale;
-  scale = Math.max(
-    0.2,
-    Math.min(3, scale * (event.deltaY < 0 ? 1.08 : 0.92))
-  );
-
-  const rect = stage.getBoundingClientRect();
-  const px = event.clientX - rect.left;
-  const py = event.clientY - rect.top;
-
-  tx = px - (px - tx) * (scale / oldScale);
-  ty = py - (py - ty) * (scale / oldScale);
-
+  const old=scale;
+  scale=Math.max(.2,Math.min(3,scale*(event.deltaY<0?1.08:.92)));
+  const rect=stage.getBoundingClientRect();
+  const px=event.clientX-rect.left,py=event.clientY-rect.top;
+  tx=px-(px-tx)*(scale/old);
+  ty=py-(py-ty)*(scale/old);
   scheduleTransform();
-}, { passive: false });
+},{passive:false});
 
-/* Recalculate on viewport changes */
-let resizeTimer;
-
-window.addEventListener("resize", () => {
+/* Resize layout only after resize activity settles. */
+window.addEventListener("resize",()=>{
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => render(false), 180);
+  resizeTimer=setTimeout(()=>render(false),250);
 });
 
-/* Escape closes viewer and menu */
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    closeSettingsMenu();
-    closeViewer();
-    $("modal").classList.remove("open");
+document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"){
+    closeSettingsMenu();closeViewer();$("modal").classList.remove("open");
   }
 });
 
-/* Start website */
-async function init() {
+/* Startup */
+async function init(){
   applyTransform();
+  updateCapacityBar();
+  db=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  const {data,error}=await db.auth.getSession();
+  if(error){status("Couldn't check login: "+error.message);return;}
 
-  db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  const { data, error } = await db.auth.getSession();
-
-  if (error) {
-    status("Couldn't check login: " + error.message);
-    return;
-  }
-
-  session = data.session;
+  session=data.session;
   updateAuthUI();
 
-  db.auth.onAuthStateChange((_event, newSession) => {
-    session = newSession;
+  db.auth.onAuthStateChange((_event,newSession)=>{
+    session=newSession;
     updateAuthUI();
-    render(false);
+    /* Avoid database work directly inside the auth callback. */
+    setTimeout(()=>loadPhotos(),0);
   });
 
   await loadPhotos();
 }
-
 init();
 </script>
 </body>
