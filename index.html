@@ -116,6 +116,12 @@ header>* { pointer-events:auto; }
   transition:width .35s ease;
 }
 
+/* Interactive starfield background (sits behind the wall) */
+#bg {
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:0;pointer-events:none;
+}
+
 /* Wall */
 #stage {
   position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab;
@@ -295,6 +301,7 @@ header>* { pointer-events:auto; }
 </head>
 
 <body>
+<canvas id="bg" aria-hidden="true"></canvas>
 <header>
   <div class="brand">
     <h1 id="wallTitle">Our Little Photo Universe ✦</h1>
@@ -1324,6 +1331,170 @@ document.addEventListener("keydown",event=>{
     closeSettingsMenu();closeViewer();$("modal").classList.remove("open");
   }
 });
+
+/* Interactive starfield: twinkling stars that drift, shy away from the cursor,
+   link up into little constellations near it, plus shooting stars and click sparkles. */
+(function(){
+  const canvas=$("bg"),ctx=canvas.getContext("2d");
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mouse={x:-9999,y:-9999};
+  let w=0,h=0,stars=[],shooters=[],bursts=[],last=0,nextShoot=3,sx=tx,sy=ty;
+  const TAU=Math.PI*2;
+  const wrap=(v,max)=>((v%max)+max)%max;
+
+  function build(){
+    const count=Math.round(Math.min(170,Math.max(50,w*h/9000)));
+    stars=Array.from({length:count},()=>{
+      const depth=Math.random();
+      return {
+        x:Math.random()*w,y:Math.random()*h,depth,
+        r:.6+depth*1.7,
+        vx:(Math.random()-.5)*.14*(.4+depth),
+        vy:(Math.random()-.5)*.14*(.4+depth)-.02,
+        phase:Math.random()*TAU,speed:.6+Math.random()*1.6,
+        pink:Math.random()<.2,ox:0,oy:0
+      };
+    });
+  }
+
+  function resize(){
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    w=window.innerWidth;h=window.innerHeight;
+    canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    build();
+    if(reduce)frame(performance.now());
+  }
+
+  function frame(now){
+    const dt=Math.min(.05,(now-last)/1000||.016);
+    last=now;
+    const t=now/1000;
+    ctx.clearRect(0,0,w,h);
+    ctx.globalCompositeOperation="lighter";
+
+    /* Soft glow that follows the cursor */
+    if(mouse.x>-5000){
+      const g=ctx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,130);
+      g.addColorStop(0,"rgba(140,210,255,.13)");
+      g.addColorStop(1,"rgba(140,210,255,0)");
+      ctx.fillStyle=g;
+      ctx.fillRect(mouse.x-130,mouse.y-130,260,260);
+    }
+
+    sx+=(tx-sx)*.08;sy+=(ty-sy)*.08;
+    const near=[];
+
+    for(const s of stars){
+      if(!reduce){s.x+=s.vx*dt*60;s.y+=s.vy*dt*60;}
+      /* Parallax: deeper stars shift a little when you pan the wall */
+      const bx=wrap(s.x+(sx-w/2)*.03*s.depth,w);
+      const by=wrap(s.y+(sy-h/2)*.03*s.depth,h);
+
+      const dx=bx-mouse.x,dy=by-mouse.y,d=Math.hypot(dx,dy);
+      let tox=0,toy=0,boost=0;
+      if(d<150){
+        boost=1-d/150;
+        const push=boost*30*(.4+s.depth)/(d||1);
+        tox=dx*push;toy=dy*push;
+      }
+      s.ox+=(tox-s.ox)*.1;s.oy+=(toy-s.oy)*.1;
+      const x=bx+s.ox,y=by+s.oy;
+
+      const tw=.5+.5*Math.sin(t*s.speed+s.phase);
+      const a=Math.min(1,.35+.65*tw+boost*.5);
+      const r=s.r*(1+boost*.9);
+      const col=s.pink?"255,170,205":"175,225,255";
+
+      ctx.fillStyle=`rgba(${col},${a*.16})`;
+      ctx.beginPath();ctx.arc(x,y,r*4,0,TAU);ctx.fill();
+      ctx.fillStyle=`rgba(${col},${a})`;
+      ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
+
+      if(s.depth>.85){
+        ctx.strokeStyle=`rgba(${col},${a*.6})`;
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(x-r*3.5,y);ctx.lineTo(x+r*3.5,y);
+        ctx.moveTo(x,y-r*3.5);ctx.lineTo(x,y+r*3.5);
+        ctx.stroke();
+      }
+      if(d<130&&near.length<16)near.push({x,y});
+    }
+
+    /* Constellation lines between stars near the cursor */
+    ctx.lineWidth=1;
+    for(let i=0;i<near.length;i++){
+      for(let j=i+1;j<near.length;j++){
+        const dist=Math.hypot(near[i].x-near[j].x,near[i].y-near[j].y);
+        if(dist<95){
+          ctx.strokeStyle=`rgba(170,225,255,${(1-dist/95)*.4})`;
+          ctx.beginPath();
+          ctx.moveTo(near[i].x,near[i].y);
+          ctx.lineTo(near[j].x,near[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    if(!reduce){
+      /* Shooting stars */
+      nextShoot-=dt;
+      if(nextShoot<=0){
+        shooters.push({
+          x:w*(.25+Math.random()*.85),y:-10-Math.random()*h*.25,
+          vx:-(380+Math.random()*220),vy:220+Math.random()*140,life:0
+        });
+        nextShoot=4+Math.random()*6;
+      }
+      for(let i=shooters.length-1;i>=0;i--){
+        const s=shooters[i];
+        s.life+=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;
+        if(s.life>1.6||s.y>h+40||s.x<-60){shooters.splice(i,1);continue;}
+        const tailX=s.x-s.vx*.16,tailY=s.y-s.vy*.16;
+        const g=ctx.createLinearGradient(s.x,s.y,tailX,tailY);
+        g.addColorStop(0,"rgba(255,255,255,.9)");
+        g.addColorStop(1,"rgba(150,215,255,0)");
+        ctx.strokeStyle=g;ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(tailX,tailY);ctx.stroke();
+      }
+
+      /* Click sparkles */
+      for(let i=bursts.length-1;i>=0;i--){
+        const p=bursts[i];
+        p.life-=dt*1.4;
+        if(p.life<=0){bursts.splice(i,1);continue;}
+        p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.96;p.vy*=.96;
+        ctx.fillStyle=`rgba(${p.pink?"255,170,205":"190,235,255"},${p.life})`;
+        ctx.beginPath();ctx.arc(p.x,p.y,1.2+p.life*1.8,0,TAU);ctx.fill();
+      }
+    }
+    ctx.globalCompositeOperation="source-over";
+  }
+
+  function loop(now){frame(now);requestAnimationFrame(loop);}
+
+  const leave=()=>{mouse.x=-9999;mouse.y=-9999;};
+  window.addEventListener("pointermove",e=>{mouse.x=e.clientX;mouse.y=e.clientY;},{passive:true});
+  window.addEventListener("pointerup",e=>{if(e.pointerType==="touch")leave();});
+  window.addEventListener("pointercancel",leave);
+  document.documentElement.addEventListener("mouseleave",leave);
+  window.addEventListener("pointerdown",e=>{
+    if(reduce||e.target.closest("button,input,a,select,textarea"))return;
+    for(let i=0;i<12;i++){
+      const angle=Math.random()*TAU,speed=40+Math.random()*120;
+      bursts.push({
+        x:e.clientX,y:e.clientY,
+        vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+        life:1,pink:Math.random()<.4
+      });
+    }
+  },{passive:true});
+  window.addEventListener("resize",resize);
+
+  resize();
+  if(!reduce)requestAnimationFrame(loop);
+})();
 
 /* Startup */
 async function init(){
