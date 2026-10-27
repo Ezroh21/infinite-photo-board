@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -119,6 +118,60 @@ header > * { pointer-events: auto; }
 
 .actions button { font-size: 13px; }
 
+/* Three-dot settings menu */
+.settings-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+#moreMenuBtn {
+  min-width: 38px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  line-height: 1;
+  box-shadow: 0 4px 0 #b8dff0;
+}
+
+#moreMenuBtn[aria-expanded="true"] {
+  background: #e8f7ff;
+}
+
+#settingsDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  min-width: 190px;
+  padding: 8px;
+  background: #fffffffa;
+  border: 1px solid #d9eef7;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px #31566a26;
+}
+
+#settingsDropdown button {
+  display: block;
+  width: 100%;
+  padding: 11px 13px;
+  text-align: left;
+  border-radius: 10px;
+  box-shadow: none;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#settingsDropdown button:hover {
+  transform: none;
+  box-shadow: none;
+  background: #fff0f3;
+}
+
 /* The zoomable universe */
 #stage {
   position: absolute;
@@ -188,10 +241,6 @@ header > * { pointer-events: auto; }
   z-index: 2;
 }
 
-/*
-  Each photo begins at the center and travels outward
-  to its assigned position in the photo wall.
-*/
 @keyframes bloom {
   from {
     transform:
@@ -405,6 +454,16 @@ header > * { pointer-events: auto; }
   .actions { gap: 6px; }
   .actions button { padding: 9px 11px; font-size: 12px; }
 
+  #moreMenuBtn {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 21px;
+  }
+
+  #settingsDropdown { min-width: 180px; }
+
   .card { width: 145px; }
   .card img { height: 125px; }
   #zoomhint { display: none; }
@@ -430,6 +489,24 @@ header > * { pointer-events: auto; }
     <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
     <button id="titleBtn" class="hidden">✎ Wall title</button>
     <button id="logoutBtn" class="hidden">Log out</button>
+
+    <!-- Three-dot menu, placed immediately after Log out -->
+    <div id="settingsMenu" class="settings-menu hidden">
+      <button
+        id="moreMenuBtn"
+        type="button"
+        aria-label="Settings"
+        aria-haspopup="true"
+        aria-expanded="false"
+        title="More settings"
+      >⋮</button>
+
+      <div id="settingsDropdown" class="hidden">
+        <button id="deleteAllBtn" type="button" class="danger">
+          🗑 Delete all photos
+        </button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -501,6 +578,7 @@ const $ = id => document.getElementById(id);
 const stage = $("stage");
 const world = $("world");
 
+/* Status message */
 function status(message) {
   $("status").textContent = message;
 }
@@ -515,21 +593,11 @@ function esc(value) {
   }[char]));
 }
 
-/*
-  SPACING-ADJUSTED LAYOUT
-
-  The cards are arranged in staggered rows around the center.
-  Horizontal spacing accounts for card width and rotation.
-  Vertical spacing accounts for the image, date, and card padding.
-
-  The layout is sorted from the center outward so the wall still
-  grows into a compact, rounded cluster.
-*/
+/* Staggered photo layout */
 function spherePosition(index) {
   const horizontalSpacing = 180;
   const verticalSpacing = 205;
 
-  // Expand the candidate grid enough to fit the requested index.
   const extent = Math.max(4, Math.ceil(Math.sqrt(index + 1)) + 2);
   const candidates = [];
 
@@ -583,19 +651,18 @@ function updateAuthUI() {
   $("uploadBtn").classList.toggle("hidden", !session);
   $("titleBtn").classList.toggle("hidden", !session);
   $("logoutBtn").classList.toggle("hidden", !session);
+  $("settingsMenu").classList.toggle("hidden", !session);
 
   document.body.classList.toggle("editing", !!session);
+
+  if (!session) closeSettingsMenu();
 }
 
 function fileUrl(path) {
   return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-/*
-  Display the saved modified date.
-  Do not fall back to uploaded_at, because that is the upload date,
-  not the original file's modified date.
-*/
+/* Show saved modified date, not upload date */
 function niceDate(value) {
   if (!value) return "Date unknown";
 
@@ -618,10 +685,7 @@ async function hashFile(file) {
     .join("");
 }
 
-/*
-  Render the photos into a staggered, center-outward layout.
-  Cards are spaced to avoid overlapping at the default zoom level.
-*/
+/* Render the photo wall */
 function render(animate = true) {
   const fragment = document.createDocumentFragment();
 
@@ -629,7 +693,6 @@ function render(animate = true) {
     const pos = spherePosition(index);
     const card = document.createElement("article");
 
-    // Position each card by its top-left corner.
     card.className = "card";
     card.style.left = (pos.x - 80) + "px";
     card.style.top = (pos.y - 90) + "px";
@@ -637,7 +700,6 @@ function render(animate = true) {
     const rotation = ((index * 17) % 7) - 3;
     card.style.setProperty("--rot", `${rotation}deg`);
 
-    // Begin at the center and animate outward.
     card.style.setProperty("--from-x", `${-pos.x}px`);
     card.style.setProperty("--from-y", `${-pos.y}px`);
 
@@ -723,6 +785,44 @@ async function loadPhotos() {
       : "Your universe is ready for its first memory ☁️"
   );
 }
+
+/* Three-dot settings menu */
+function openSettingsMenu() {
+  $("settingsDropdown").classList.remove("hidden");
+  $("moreMenuBtn").setAttribute("aria-expanded", "true");
+}
+
+function closeSettingsMenu() {
+  $("settingsDropdown").classList.add("hidden");
+  $("moreMenuBtn").setAttribute("aria-expanded", "false");
+}
+
+$("moreMenuBtn").addEventListener("click", event => {
+  event.stopPropagation();
+
+  if ($("settingsDropdown").classList.contains("hidden")) {
+    openSettingsMenu();
+  } else {
+    closeSettingsMenu();
+  }
+});
+
+$("settingsDropdown").addEventListener("click", event => {
+  event.stopPropagation();
+});
+
+document.addEventListener("click", event => {
+  if (!$("settingsMenu").contains(event.target)) {
+    closeSettingsMenu();
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeSettingsMenu();
+    closeViewer();
+  }
+});
 
 /* Open a larger version of a photo */
 function openViewer(url) {
@@ -876,10 +976,6 @@ $("fileInput").onchange = async event => {
           throw new Error("Storage upload: " + uploadError.message);
         }
 
-        /*
-          Save the original file's modified date at upload time.
-          file.lastModified is supplied by the browser for the selected file.
-        */
         const modifiedDate = file.lastModified
           ? new Date(file.lastModified)
           : null;
@@ -933,6 +1029,11 @@ $("fileInput").onchange = async event => {
 
 /* Change a photo's displayed date */
 async function editDate(photo) {
+  if (busy) {
+    status("Please wait for the current task to finish.");
+    return;
+  }
+
   const current = photo.captured_at
     ? new Date(photo.captured_at).toISOString().slice(0, 10)
     : "";
@@ -1010,6 +1111,111 @@ async function removePhoto(photo) {
     busy = false;
   }
 }
+
+/*
+  DELETE ALL PHOTOS
+
+  This deletes the photo records from the photos table, then removes
+  the corresponding files from the photo-wall storage bucket.
+  Supabase permissions must allow both operations.
+*/
+$("deleteAllBtn").addEventListener("click", async () => {
+  closeSettingsMenu();
+
+  if (!session) {
+    status("Please sign in first.");
+    return;
+  }
+
+  if (busy) {
+    status("Please wait for the current task to finish.");
+    return;
+  }
+
+  if (!photos.length) {
+    status("There are no photos to delete.");
+    return;
+  }
+
+  const confirmed = confirm(
+    `⚠️ Delete ALL ${photos.length} photos from your photo wall?\n\n` +
+    "This will remove the photo records and attempt to delete their stored files. " +
+    "This action cannot be undone."
+  );
+
+  if (!confirmed) {
+    status("Delete all cancelled.");
+    return;
+  }
+
+  // Keep a copy of the current list for storage cleanup.
+  const photosToDelete = [...photos];
+  const ids = photosToDelete.map(photo => photo.id);
+  const paths = photosToDelete.map(photo => photo.storage_path);
+
+  busy = true;
+  $("deleteAllBtn").disabled = true;
+  $("moreMenuBtn").disabled = true;
+
+  try {
+    status(`Removing ${photosToDelete.length} photo records…`);
+
+    /*
+      Delete only the records currently shown on this wall.
+      If this database operation fails, stop before storage cleanup.
+    */
+    const { error: rowError } = await db
+      .from("photos")
+      .delete()
+      .in("id", ids);
+
+    if (rowError) {
+      throw new Error("Couldn't delete photo records: " + rowError.message);
+    }
+
+    // The database deletion succeeded, so remove the photos from the UI.
+    photos = photos.filter(photo => !ids.includes(photo.id));
+    render(false);
+
+    status("Photo records removed. Cleaning up stored image files…");
+
+    let storageFailures = 0;
+    let firstStorageError = "";
+
+    // Remove files in batches to avoid sending one huge request.
+    for (let i = 0; i < paths.length; i += 100) {
+      const batch = paths.slice(i, i + 100);
+
+      const { error: storageError } = await db.storage
+        .from(BUCKET)
+        .remove(batch);
+
+      if (storageError) {
+        storageFailures += batch.length;
+        if (!firstStorageError) {
+          firstStorageError = storageError.message;
+        }
+      }
+    }
+
+    if (storageFailures > 0) {
+      status(
+        `The wall is cleared, but some storage files may remain ` +
+        `(${storageFailures} file(s) in affected batches). ` +
+        `Supabase said: ${firstStorageError}`
+      );
+    } else {
+      status(`All ${photosToDelete.length} photos deleted. Your wall is clear ☁️`);
+    }
+  } catch (error) {
+    console.error("Delete all failed:", error);
+    status(error.message || "Delete all failed. Please try again.");
+  } finally {
+    busy = false;
+    $("deleteAllBtn").disabled = false;
+    $("moreMenuBtn").disabled = false;
+  }
+});
 
 /* Change the wall's title on this device */
 $("titleBtn").onclick = () => {
@@ -1172,7 +1378,6 @@ stage.addEventListener("wheel", event => {
   const px = event.clientX - rect.left;
   const py = event.clientY - rect.top;
 
-  // Zoom toward the mouse cursor.
   tx = px - (px - tx) * (scale / oldScale);
   ty = py - (py - ty) * (scale / oldScale);
 
