@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -27,10 +28,7 @@ html, body {
 
 body {
   background: linear-gradient(
-    180deg,
-    #dff5ff 0%,
-    #f5fbff 58%,
-    #fff7fb 100%
+    180deg, #dff5ff 0%, #f5fbff 58%, #fff7fb 100%
   );
 }
 
@@ -135,11 +133,6 @@ header > * { pointer-events: auto; }
   justify-content: center;
   font-size: 23px;
   line-height: 1;
-  box-shadow: 0 4px 0 #b8dff0;
-}
-
-#moreMenuBtn[aria-expanded="true"] {
-  background: #e8f7ff;
 }
 
 #settingsDropdown {
@@ -172,7 +165,7 @@ header > * { pointer-events: auto; }
   background: #fff0f3;
 }
 
-/* The zoomable universe */
+/* Photo wall */
 #stage {
   position: absolute;
   inset: 0;
@@ -239,6 +232,7 @@ header > * { pointer-events: auto; }
   background: #a9e4f2bb;
   border-radius: 2px;
   z-index: 2;
+  pointer-events: none;
 }
 
 @keyframes bloom {
@@ -263,6 +257,7 @@ header > * { pointer-events: auto; }
   background: #eaf7fc;
   cursor: zoom-in;
   -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 .card .date {
@@ -273,6 +268,7 @@ header > * { pointer-events: auto; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .card .card-tools {
@@ -410,6 +406,7 @@ header > * { pointer-events: auto; }
   opacity: 0;
 }
 
+/* Enlarged photo viewer */
 #viewer {
   display: none;
   position: fixed;
@@ -419,22 +416,62 @@ header > * { pointer-events: auto; }
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow: hidden;
+  touch-action: none;
 }
 
 #viewer.open { display: flex; }
 
+#viewerContent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+#viewerContent.dragging { cursor: grabbing; }
+
 #viewer img {
+  display: block;
   max-width: 95vw;
   max-height: 82vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 15px 50px #0006;
+  transform-origin: center center;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 #viewerClose {
   position: absolute;
+  z-index: 3;
   top: 18px;
   right: 18px;
+}
+
+#viewerHint {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  color: white;
+  background: #102f40b8;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* Mobile layout */
@@ -466,7 +503,14 @@ header > * { pointer-events: auto; }
 
   .card { width: 145px; }
   .card img { height: 125px; }
+
   #zoomhint { display: none; }
+
+  #viewerHint {
+    max-width: 90vw;
+    white-space: normal;
+    line-height: 1.4;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -490,7 +534,6 @@ header > * { pointer-events: auto; }
     <button id="titleBtn" class="hidden">✎ Wall title</button>
     <button id="logoutBtn" class="hidden">Log out</button>
 
-    <!-- Three-dot menu, placed immediately after Log out -->
     <div id="settingsMenu" class="settings-menu hidden">
       <button
         id="moreMenuBtn"
@@ -528,7 +571,7 @@ header > * { pointer-events: auto; }
 </div>
 
 <div id="status">Connecting to our little universe…</div>
-<div id="zoomhint">Drag to wander · Pinch or scroll to zoom</div>
+<div id="zoomhint">Drag anywhere · Scroll to zoom</div>
 <input id="fileInput" type="file" accept="image/*" multiple>
 
 <div id="modal">
@@ -554,11 +597,11 @@ header > * { pointer-events: auto; }
 <div id="viewer">
   <button id="viewerClose">✕ Close</button>
   <div id="viewerContent"></div>
+  <div id="viewerHint">Scroll or pinch to zoom · Drag to explore · Double-click to zoom</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1"></script>
 <script>
-/* Your existing Supabase settings */
 const SUPABASE_URL = "https://lekewvjkjwrtcpaizxux.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_yeuYMWyCW_vQi-Sti3WkxQ_esCVzCts";
 const BUCKET = "photo-wall";
@@ -597,7 +640,6 @@ function esc(value) {
 function spherePosition(index) {
   const horizontalSpacing = 180;
   const verticalSpacing = 205;
-
   const extent = Math.max(4, Math.ceil(Math.sqrt(index + 1)) + 2);
   const candidates = [];
 
@@ -605,31 +647,21 @@ function spherePosition(index) {
     for (let col = -extent; col <= extent; col++) {
       const x = col * horizontalSpacing +
         (Math.abs(row) % 2) * (horizontalSpacing / 2);
-
       const y = row * verticalSpacing;
 
       candidates.push({
         x,
         y,
-        distance: x * x + y * y,
-        row,
-        col
+        distance: x * x + y * y
       });
     }
   }
 
   candidates.sort((a, b) =>
-    a.distance - b.distance ||
-    a.y - b.y ||
-    a.x - b.x
+    a.distance - b.distance || a.y - b.y || a.x - b.x
   );
 
-  const position = candidates[index];
-
-  return {
-    x: position.x,
-    y: position.y
-  };
+  return { x: candidates[index].x, y: candidates[index].y };
 }
 
 function applyTransform() {
@@ -652,7 +684,6 @@ function updateAuthUI() {
   $("titleBtn").classList.toggle("hidden", !session);
   $("logoutBtn").classList.toggle("hidden", !session);
   $("settingsMenu").classList.toggle("hidden", !session);
-
   document.body.classList.toggle("editing", !!session);
 
   if (!session) closeSettingsMenu();
@@ -662,7 +693,6 @@ function fileUrl(path) {
   return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-/* Show saved modified date, not upload date */
 function niceDate(value) {
   if (!value) return "Date unknown";
 
@@ -699,10 +729,8 @@ function render(animate = true) {
 
     const rotation = ((index * 17) % 7) - 3;
     card.style.setProperty("--rot", `${rotation}deg`);
-
     card.style.setProperty("--from-x", `${-pos.x}px`);
     card.style.setProperty("--from-y", `${-pos.y}px`);
-
     card.style.setProperty(
       "--delay",
       animate ? `${Math.min(index * 22, 1100)}ms` : "0ms"
@@ -713,14 +741,9 @@ function render(animate = true) {
     const url = fileUrl(photo.storage_path);
 
     card.innerHTML = `
-      <img
-        src="${esc(url)}"
-        alt="Our memory"
-        loading="lazy"
-        decoding="async"
-        fetchpriority="low"
-        draggable="false"
-      >
+      <img src="${esc(url)}" alt="Our memory"
+        loading="lazy" decoding="async" fetchpriority="low"
+        draggable="false">
       <div class="date">${esc(niceDate(photo.captured_at))}</div>
       <div class="card-tools">
         <button type="button" data-action="view">View</button>
@@ -729,18 +752,13 @@ function render(animate = true) {
       </div>
     `;
 
-    card.querySelector("img").addEventListener("click", () => {
-      openViewer(url);
-    });
-
     card.addEventListener("click", event => {
-      const button = event.target.closest("button");
+      const button = event.target.closest("button[data-action]");
       if (!button) return;
 
       event.stopPropagation();
 
       const action = button.dataset.action;
-
       if (action === "view") openViewer(url);
       if (action === "date") editDate(photo);
       if (action === "delete") removePhoto(photo);
@@ -750,9 +768,7 @@ function render(animate = true) {
   });
 
   world.replaceChildren(fragment);
-
   $("empty").style.display = photos.length ? "none" : "flex";
-
   applyTransform();
 }
 
@@ -776,7 +792,6 @@ async function loadPhotos() {
   }
 
   photos = data || [];
-
   render(true);
 
   status(
@@ -817,25 +832,67 @@ document.addEventListener("click", event => {
   }
 });
 
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    closeSettingsMenu();
-    closeViewer();
-  }
-});
+/* Individual photo viewer with its own zoom and pan */
+let viewerScale = 1;
+let viewerX = 0;
+let viewerY = 0;
+let viewerPointers = new Map();
+let viewerGesture = null;
+let viewerDragged = false;
+let viewerClickTimer = null;
 
-/* Open a larger version of a photo */
+function updateViewerTransform() {
+  const image = $("viewerContent").querySelector("img");
+  if (!image) return;
+
+  image.style.transform =
+    `translate(${viewerX}px, ${viewerY}px) scale(${viewerScale})`;
+}
+
+function resetViewerZoom() {
+  viewerScale = 1;
+  viewerX = 0;
+  viewerY = 0;
+  updateViewerTransform();
+}
+
 function openViewer(url) {
+  closeSettingsMenu();
+
   $("viewerContent").innerHTML = `
-    <img src="${esc(url)}" decoding="async" alt="Our memory">
+    <img src="${esc(url)}" decoding="async"
+      alt="Our memory" draggable="false">
   `;
 
+  viewerScale = 1;
+  viewerX = 0;
+  viewerY = 0;
+  viewerPointers.clear();
+  viewerGesture = null;
+  viewerDragged = false;
+
   $("viewer").classList.add("open");
+
+  const image = $("viewerContent").querySelector("img");
+
+  image.addEventListener("load", updateViewerTransform);
+  image.addEventListener("dblclick", event => {
+    event.preventDefault();
+
+    if (viewerScale > 1) {
+      resetViewerZoom();
+    } else {
+      viewerScale = 2;
+      updateViewerTransform();
+    }
+  });
 }
 
 function closeViewer() {
   $("viewer").classList.remove("open");
   $("viewerContent").innerHTML = "";
+  viewerPointers.clear();
+  viewerGesture = null;
 }
 
 $("viewerClose").onclick = closeViewer;
@@ -843,6 +900,150 @@ $("viewerClose").onclick = closeViewer;
 $("viewer").addEventListener("click", event => {
   if (event.target === $("viewer")) closeViewer();
 });
+
+/* Zoom the enlarged image with the mouse wheel */
+$("viewerContent").addEventListener("wheel", event => {
+  event.preventDefault();
+
+  const oldScale = viewerScale;
+  const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+  viewerScale = Math.max(1, Math.min(6, viewerScale * factor));
+
+  const rect = $("viewerContent").getBoundingClientRect();
+  const px = event.clientX - rect.left - rect.width / 2;
+  const py = event.clientY - rect.top - rect.height / 2;
+  const ratio = viewerScale / oldScale;
+
+  viewerX = px - (px - viewerX) * ratio;
+  viewerY = py - (py - viewerY) * ratio;
+
+  updateViewerTransform();
+}, { passive: false });
+
+/* Drag the enlarged image to explore it; pinch with two fingers to zoom */
+function viewerDistance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function viewerMidpoint(a, b) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2
+  };
+}
+
+$("viewerContent").addEventListener("pointerdown", event => {
+  if (event.button !== undefined && event.button !== 0) return;
+
+  event.preventDefault();
+  $("viewerContent").setPointerCapture(event.pointerId);
+
+  viewerPointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
+  viewerDragged = false;
+
+  if (viewerPointers.size === 1) {
+    viewerGesture = {
+      type: "drag",
+      x: event.clientX,
+      y: event.clientY,
+      viewerX,
+      viewerY
+    };
+  } else if (viewerPointers.size === 2) {
+    const points = [...viewerPointers.values()];
+    const midpoint = viewerMidpoint(points[0], points[1]);
+
+    viewerGesture = {
+      type: "pinch",
+      distance: viewerDistance(points[0], points[1]),
+      scale: viewerScale,
+      midpoint,
+      viewerX,
+      viewerY
+    };
+
+    viewerDragged = true;
+  }
+});
+
+$("viewerContent").addEventListener("pointermove", event => {
+  if (!viewerPointers.has(event.pointerId)) return;
+
+  viewerPointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
+  if (!viewerGesture) return;
+
+  if (viewerPointers.size >= 2 && viewerGesture.type === "pinch") {
+    const points = [...viewerPointers.values()];
+    const distance = viewerDistance(points[0], points[1]);
+    const midpoint = viewerMidpoint(points[0], points[1]);
+
+    if (viewerGesture.distance > 0) {
+      const oldScale = viewerScale;
+      viewerScale = Math.max(
+        1,
+        Math.min(
+          6,
+          viewerGesture.scale * distance / viewerGesture.distance
+        )
+      );
+
+      const ratio = viewerScale / oldScale;
+      const rect = $("viewerContent").getBoundingClientRect();
+      const px = midpoint.x - rect.left - rect.width / 2;
+      const py = midpoint.y - rect.top - rect.height / 2;
+
+      viewerX = px - (px - viewerGesture.viewerX) * ratio;
+      viewerY = py - (py - viewerGesture.viewerY) * ratio;
+
+      updateViewerTransform();
+    }
+
+    viewerDragged = true;
+    return;
+  }
+
+  if (viewerPointers.size === 1 && viewerGesture.type === "drag") {
+    const dx = event.clientX - viewerGesture.x;
+    const dy = event.clientY - viewerGesture.y;
+
+    if (Math.hypot(dx, dy) > 3) viewerDragged = true;
+
+    if (viewerScale > 1) {
+      viewerX = viewerGesture.viewerX + dx;
+      viewerY = viewerGesture.viewerY + dy;
+      updateViewerTransform();
+    }
+  }
+});
+
+function endViewerPointer(event) {
+  viewerPointers.delete(event.pointerId);
+
+  if (viewerPointers.size === 1) {
+    const point = [...viewerPointers.values()][0];
+
+    viewerGesture = {
+      type: "drag",
+      x: point.x,
+      y: point.y,
+      viewerX,
+      viewerY
+    };
+  } else {
+    viewerGesture = null;
+  }
+}
+
+$("viewerContent").addEventListener("pointerup", endViewerPointer);
+$("viewerContent").addEventListener("pointercancel", endViewerPointer);
 
 /* Sign in */
 $("loginBtn").onclick = () => {
@@ -1065,7 +1266,6 @@ async function editDate(photo) {
   }
 
   photo.captured_at = date.toISOString();
-
   render(false);
   status("Photo date updated ✨");
 }
@@ -1089,9 +1289,7 @@ async function removePhoto(photo) {
       .delete()
       .eq("id", photo.id);
 
-    if (rowError) {
-      throw rowError;
-    }
+    if (rowError) throw rowError;
 
     const { error: storageError } = await db.storage
       .from(BUCKET)
@@ -1112,13 +1310,7 @@ async function removePhoto(photo) {
   }
 }
 
-/*
-  DELETE ALL PHOTOS
-
-  This deletes the photo records from the photos table, then removes
-  the corresponding files from the photo-wall storage bucket.
-  Supabase permissions must allow both operations.
-*/
+/* Delete all photos from the three-dot menu */
 $("deleteAllBtn").addEventListener("click", async () => {
   closeSettingsMenu();
 
@@ -1137,18 +1329,14 @@ $("deleteAllBtn").addEventListener("click", async () => {
     return;
   }
 
-  const confirmed = confirm(
+  if (!confirm(
     `⚠️ Delete ALL ${photos.length} photos from your photo wall?\n\n` +
-    "This will remove the photo records and attempt to delete their stored files. " +
-    "This action cannot be undone."
-  );
-
-  if (!confirmed) {
+    "This cannot be undone. The photo records and stored files will be removed."
+  )) {
     status("Delete all cancelled.");
     return;
   }
 
-  // Keep a copy of the current list for storage cleanup.
   const photosToDelete = [...photos];
   const ids = photosToDelete.map(photo => photo.id);
   const paths = photosToDelete.map(photo => photo.storage_path);
@@ -1160,10 +1348,6 @@ $("deleteAllBtn").addEventListener("click", async () => {
   try {
     status(`Removing ${photosToDelete.length} photo records…`);
 
-    /*
-      Delete only the records currently shown on this wall.
-      If this database operation fails, stop before storage cleanup.
-    */
     const { error: rowError } = await db
       .from("photos")
       .delete()
@@ -1173,16 +1357,12 @@ $("deleteAllBtn").addEventListener("click", async () => {
       throw new Error("Couldn't delete photo records: " + rowError.message);
     }
 
-    // The database deletion succeeded, so remove the photos from the UI.
     photos = photos.filter(photo => !ids.includes(photo.id));
     render(false);
-
-    status("Photo records removed. Cleaning up stored image files…");
 
     let storageFailures = 0;
     let firstStorageError = "";
 
-    // Remove files in batches to avoid sending one huge request.
     for (let i = 0; i < paths.length; i += 100) {
       const batch = paths.slice(i, i + 100);
 
@@ -1192,17 +1372,14 @@ $("deleteAllBtn").addEventListener("click", async () => {
 
       if (storageError) {
         storageFailures += batch.length;
-        if (!firstStorageError) {
-          firstStorageError = storageError.message;
-        }
+        if (!firstStorageError) firstStorageError = storageError.message;
       }
     }
 
-    if (storageFailures > 0) {
+    if (storageFailures) {
       status(
-        `The wall is cleared, but some storage files may remain ` +
-        `(${storageFailures} file(s) in affected batches). ` +
-        `Supabase said: ${firstStorageError}`
+        `The wall is cleared, but storage cleanup failed for one or more batches. ` +
+        `Supabase: ${firstStorageError}`
       );
     } else {
       status(`All ${photosToDelete.length} photos deleted. Your wall is clear ☁️`);
@@ -1217,7 +1394,7 @@ $("deleteAllBtn").addEventListener("click", async () => {
   }
 });
 
-/* Change the wall's title on this device */
+/* Change the wall title on this device */
 $("titleBtn").onclick = () => {
   const current = $("wallTitle").textContent;
   const next = prompt("Give your photo wall a title:", current);
@@ -1236,10 +1413,12 @@ if (savedTitle) {
   $("wallTitle").textContent = savedTitle;
 }
 
-/* Dragging, mouse-wheel zoom and touch pinch zoom */
+/* Smooth pan anywhere on the board and pinch-to-zoom */
 const activePointers = new Map();
 let pointerStart = null;
 let pinchState = null;
+let movedDuringGesture = false;
+let suppressClickUntil = 0;
 
 function pointerDistance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -1253,10 +1432,10 @@ function pointerMidpoint(a, b) {
 }
 
 stage.addEventListener("pointerdown", event => {
-  if (
-    event.target.closest(".card") ||
-    event.target.closest("button")
-  ) return;
+  if (event.button !== undefined && event.button !== 0) return;
+
+  // Keep normal interaction with header, menu, and modal controls.
+  if (event.target.closest("button")) return;
 
   stage.setPointerCapture(event.pointerId);
 
@@ -1273,10 +1452,14 @@ stage.addEventListener("pointerdown", event => {
       ty
     };
 
+    pinchState = null;
+    movedDuringGesture = false;
     stage.classList.add("dragging");
   } else if (activePointers.size === 2) {
     const points = [...activePointers.values()];
     const midpoint = pointerMidpoint(points[0], points[1]);
+
+    pointerStart = null;
 
     pinchState = {
       distance: pointerDistance(points[0], points[1]),
@@ -1285,6 +1468,8 @@ stage.addEventListener("pointerdown", event => {
       tx,
       ty
     };
+
+    movedDuringGesture = true;
   }
 });
 
@@ -1313,34 +1498,46 @@ stage.addEventListener("pointermove", event => {
 
     const distance = pointerDistance(points[0], points[1]);
 
-    scale = Math.max(
-      0.2,
-      Math.min(3, pinchState.scale * (
-        distance / (pinchState.distance || 1)
-      ))
-    );
+    if (pinchState.distance > 0) {
+      scale = Math.max(
+        0.2,
+        Math.min(3, pinchState.scale * distance / pinchState.distance)
+      );
 
-    tx = midpoint.x -
-      (pinchState.midpoint.x - pinchState.tx) *
-      (scale / (pinchState.scale || 1));
+      tx = midpoint.x -
+        (pinchState.midpoint.x - pinchState.tx) *
+        (scale / pinchState.scale);
 
-    ty = midpoint.y -
-      (pinchState.midpoint.y - pinchState.ty) *
-      (scale / (pinchState.scale || 1));
+      ty = midpoint.y -
+        (pinchState.midpoint.y - pinchState.ty) *
+        (scale / pinchState.scale);
 
-    scheduleTransform();
+      scheduleTransform();
+    }
+
+    movedDuringGesture = true;
     return;
   }
 
   if (pointerStart) {
-    tx = pointerStart.tx + (event.clientX - pointerStart.x);
-    ty = pointerStart.ty + (event.clientY - pointerStart.y);
+    const dx = event.clientX - pointerStart.x;
+    const dy = event.clientY - pointerStart.y;
+
+    if (Math.hypot(dx, dy) > 5) movedDuringGesture = true;
+
+    tx = pointerStart.tx + dx;
+    ty = pointerStart.ty + dy;
+
     scheduleTransform();
   }
 });
 
 function endPointer(event) {
+  const wasDragging = movedDuringGesture;
   activePointers.delete(event.pointerId);
+
+  if (wasDragging) suppressClickUntil = Date.now() + 300;
+
   pinchState = null;
 
   if (activePointers.size === 1) {
@@ -1364,6 +1561,25 @@ function endPointer(event) {
 stage.addEventListener("pointerup", endPointer);
 stage.addEventListener("pointercancel", endPointer);
 
+/* Ignore clicks generated at the end of a pan gesture. */
+world.addEventListener("click", event => {
+  if (Date.now() < suppressClickUntil) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
+  const button = event.target.closest("button[data-action]");
+  if (button) return;
+
+  const card = event.target.closest(".card");
+  if (!card) return;
+
+  const photo = photos.find(item => item.id === card.dataset.id);
+  if (photo) openViewer(fileUrl(photo.storage_path));
+}, true);
+
+/* Mouse wheel zooms the wall toward the cursor */
 stage.addEventListener("wheel", event => {
   event.preventDefault();
 
@@ -1383,6 +1599,14 @@ stage.addEventListener("wheel", event => {
 
   scheduleTransform();
 }, { passive: false });
+
+/* Escape closes the viewer or settings menu */
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeSettingsMenu();
+    closeViewer();
+  }
+});
 
 /* Start the website */
 async function init() {
