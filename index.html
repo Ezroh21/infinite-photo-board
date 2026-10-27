@@ -175,6 +175,27 @@ header>* { pointer-events:auto; }
 .card .card-tools button { padding:5px 8px;font-size:10px;box-shadow:none;background:#e8f7ff; }
 .editing .card .card-tools { display:flex; }
 
+/* Like heart (top-right corner of the frame) */
+.heart-badge {
+  position:absolute;top:-15px;right:-15px;width:42px;height:38px;z-index:3;
+  pointer-events:none;filter:drop-shadow(0 3px 5px #0006);
+}
+.heart-badge svg { display:block;width:100%;height:100%; }
+.heart-badge .heart-count {
+  position:absolute;left:0;right:0;top:0;height:86%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:900;color:#fff;line-height:1;
+  text-shadow:0 1px 2px #8a1c43;
+}
+.heart-badge .heart-count[data-len="3"] { font-size:10px; }
+.heart-badge .heart-count[data-len="4"] { font-size:8.5px; }
+.heart-badge.pop { animation:heartPop .45s cubic-bezier(.2,.9,.3,1.5); }
+@keyframes heartPop {
+  0% { transform:scale(.4); }
+  55% { transform:scale(1.35); }
+  100% { transform:scale(1); }
+}
+
 #empty {
   position:fixed;inset:0;z-index:2;display:flex;align-items:center;
   justify-content:center;padding:145px 22px 50px;text-align:center;pointer-events:none;
@@ -490,7 +511,7 @@ function cardWidth(photo) {
 }
 
 function cardHeight(photo) {
-  return cardWidth(photo)/photoRatio(photo)+8+14+18+(session?44:0);
+  return cardWidth(photo)/photoRatio(photo)+8+14+18+(session?72:0);
 }
 
 async function loadPhotoDimensions() {
@@ -751,7 +772,14 @@ async function render(animate=true) {
       '<button type="button" data-action="date">Date</button>'+
       '<button type="button" data-action="delete" class="danger">Remove</button>';
 
-    card.append(img,date,tools);
+    const likeTools=document.createElement("div");
+    likeTools.className="card-tools";
+    likeTools.innerHTML=
+      '<button type="button" data-action="like">♥ Like</button>'+
+      '<button type="button" data-action="resetlikes" class="danger">Reset ♥</button>';
+
+    card.append(img,date,tools,likeTools);
+    setHeart(card,photo,false);
     fragment.appendChild(card);
   }
 
@@ -1047,6 +1075,67 @@ async function editDate(photo){
   status("Photo date updated ✨");
 }
 
+/* Likes: heart badge with counter. Needs a "likes" integer column on the photos table. */
+const HEART_SVG=
+  '<svg viewBox="0 0 32 29" aria-hidden="true">'+
+  '<path d="M16 28.5C14 26.8 2 18.6 2 9.6 2 4.9 5.6 1.5 9.8 1.5c2.4 0 4.7 1.2 6.2 3.2 1.5-2 3.8-3.2 6.2-3.2 4.2 0 7.8 3.4 7.8 8.1 0 9-12 17.2-14 18.9z" '+
+  'fill="#ff5c8a" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>';
+
+function setHeart(card,photo,pop){
+  const count=Math.max(0,Number(photo.likes)||0);
+  let badge=card.querySelector(".heart-badge");
+  const resetBtn=card.querySelector('[data-action="resetlikes"]');
+  if(resetBtn)resetBtn.classList.toggle("hidden",count===0);
+
+  if(!count){
+    if(badge)badge.remove();
+    return;
+  }
+  if(!badge){
+    badge=document.createElement("div");
+    badge.className="heart-badge";
+    badge.innerHTML=HEART_SVG+'<span class="heart-count"></span>';
+    card.appendChild(badge);
+  }
+  const text=count>999?"999+":String(count);
+  const span=badge.querySelector(".heart-count");
+  span.textContent=text;
+  span.dataset.len=String(text.length);
+  if(pop){
+    badge.classList.remove("pop");
+    void badge.offsetWidth;
+    badge.classList.add("pop");
+  }
+}
+
+async function saveLikes(photo,card,previous){
+  const {error}=await db.from("photos").update({likes:photo.likes}).eq("id",photo.id);
+  if(error){
+    photo.likes=previous;
+    setHeart(card,photo,false);
+    status("Couldn't save likes: "+error.message);
+    return false;
+  }
+  return true;
+}
+
+async function likePhoto(photo,card){
+  if(!session)return;
+  const previous=Math.max(0,Number(photo.likes)||0);
+  photo.likes=previous+1;
+  setHeart(card,photo,true);
+  await saveLikes(photo,card,previous);
+}
+
+async function resetLikes(photo,card){
+  if(!session)return;
+  const previous=Math.max(0,Number(photo.likes)||0);
+  if(!previous)return;
+  photo.likes=0;
+  setHeart(card,photo,false);
+  await saveLikes(photo,card,previous);
+}
+
 /* Delete one photo */
 async function removePhoto(photo){
   if(busy){status("Please wait for the current task to finish.");return;}
@@ -1201,6 +1290,8 @@ world.addEventListener("click",event=>{
     if(button.dataset.action==="view")openViewer(photo);
     if(button.dataset.action==="date")editDate(photo);
     if(button.dataset.action==="delete")removePhoto(photo);
+    if(button.dataset.action==="like")likePhoto(photo,card);
+    if(button.dataset.action==="resetlikes")resetLikes(photo,card);
     return;
   }
 
