@@ -455,12 +455,30 @@ function photoRatio(photo) {
   return width / height;
 }
 
+/* Random size variation: a few photos get a bigger card (never more than 2x). */
+const BIG_CHANCE = 0.12;   // ~12% of photos are enlarged (raise for more, lower for fewer)
+const BIG_MIN = 1.3;       // smallest boost for an enlarged photo
+const BIG_MAX = 2;         // hard cap: never more than 2x
+const sizeBoostCache = new Map();
+
+function sizeBoost(photo) {
+  const key = getPhotoKey(photo);
+  if (sizeBoostCache.has(key)) return sizeBoostCache.get(key);
+  const rng = randomFromString(key + "-size");
+  const boost = rng() < BIG_CHANCE
+    ? BIG_MIN + rng() * (BIG_MAX - BIG_MIN)
+    : 1;
+  sizeBoostCache.set(key, boost);
+  return boost;
+}
+
 function cardWidth(photo) {
   const base = window.innerWidth <= 600 ? 145 : 160;
   const ratio = photoRatio(photo);
-  if (ratio >= 1.35) return base*1.22;
-  if (ratio <= .75) return base*.88;
-  return base;
+  let width = base;
+  if (ratio >= 1.35) width = base*1.22;
+  else if (ratio <= .75) width = base*.88;
+  return width * sizeBoost(photo);
 }
 
 function cardHeight(photo) {
