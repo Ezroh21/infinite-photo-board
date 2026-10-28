@@ -134,9 +134,10 @@ header>* { pointer-events:auto; }
   transform-origin:0 0;
 }
 /* Zoomed-out level of detail: skip effects that are too small to see anyway */
-#world.far .card { box-shadow:none;transition:none; }
-#world.far .card:before { display:none; }
-#world.far .card .date,#world.far .card .card-tools { visibility:hidden; }
+#world.far .card,#world.moving .card { box-shadow:none;transition:none; }
+#world.far .card:before,#world.moving .card:before { display:none; }
+#world.far .card .date,#world.far .card .card-tools,
+#world.moving .card .date,#world.moving .card .card-tools { visibility:hidden; }
 .sky-decoration {
   position:fixed;z-index:0;pointer-events:none;user-select:none;
   line-height:1;opacity:.68;filter:drop-shadow(0 0 12px #9ddcff30);
@@ -732,7 +733,7 @@ function createRandomCircularLayout() {
   });
 }
 
-let isFar=false,gestureTimer=0;
+let isFar=false,gestureTimer=0,gesturing=false;
 function applyTransform() {
   world.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`;
   /* Zoomed-out level of detail, with hysteresis so it doesn't flicker at the threshold */
@@ -741,10 +742,12 @@ function applyTransform() {
 }
 /* will-change only while the wall is moving; releasing it afterwards lets the browser
    re-rasterize at the settled zoom (sharper, and far lighter on memory when zoomed out). */
-function beginGesture(){clearTimeout(gestureTimer);world.style.willChange="transform";}
+function beginGesture(){clearTimeout(gestureTimer);gesturing=true;}
+/* While zooming, shadows/text are dropped so each re-draw at the new scale is cheap */
+function beginZoom(){beginGesture();world.classList.add("moving");}
 function endGestureSoon(){
   clearTimeout(gestureTimer);
-  gestureTimer=setTimeout(()=>{world.style.willChange="auto";},250);
+  gestureTimer=setTimeout(()=>{gesturing=false;world.classList.remove("moving");},200);
 }
 function scheduleTransform() {
   if(transformFrame)return;
@@ -837,6 +840,22 @@ async function render(animate=true) {
   updateCapacityBar();
 }
 
+/* Fetch every thumbnail a few at a time after load, so zooming out finds them already cached
+   instead of starting 100+ downloads at the same moment. */
+let preloadToken=0;
+function preloadThumbs(){
+  const token=++preloadToken,queue=photos.map(displayUrl);
+  let i=0;
+  const next=()=>{
+    if(token!==preloadToken||i>=queue.length)return;
+    const img=new Image();
+    img.decoding="async";
+    img.onload=img.onerror=()=>setTimeout(next,40);
+    img.src=queue[i++];
+  };
+  setTimeout(()=>{for(let k=0;k<3;k++)next();},1500);
+}
+
 async function loadPhotos() {
   if(!db){status("Supabase is not configured.");return;}
   status("Gathering our memories…");
@@ -844,6 +863,7 @@ async function loadPhotos() {
   if(error){status("Couldn't load photos: "+error.message);console.error(error);return;}
   photos=data||[];
   await render(false);
+  preloadThumbs();
   status(photos.length
     ?`${photos.length} memories in our little universe 💗`
     :"Your universe is ready for its first memory ☁️");
@@ -1298,6 +1318,7 @@ stage.addEventListener("pointermove",event=>{
     }
     const dist=distance(points[0],points[1]);
     if(pinchState.distance>0){
+      beginZoom();
       scale=Math.max(.2,Math.min(3,pinchState.scale*dist/pinchState.distance));
       tx=mid.x-(pinchState.mid.x-pinchState.tx)*(scale/pinchState.scale);
       ty=mid.y-(pinchState.mid.y-pinchState.ty)*(scale/pinchState.scale);
@@ -1365,7 +1386,7 @@ stage.addEventListener("wheel",event=>{
   const px=event.clientX-rect.left,py=event.clientY-rect.top;
   tx=px-(px-tx)*(scale/old);
   ty=py-(py-ty)*(scale/old);
-  beginGesture();endGestureSoon();
+  beginZoom();endGestureSoon();
   scheduleTransform();
 },{passive:false});
 
@@ -1539,7 +1560,7 @@ document.addEventListener("keydown",event=>{
   function loop(now){
     requestAnimationFrame(loop);
     if(document.hidden||$("viewer").classList.contains("open"))return;
-    if(coarse&&(now-last<33||world.style.willChange==="transform"))return;
+    if(coarse&&(now-last<33||gesturing))return;
     frame(now);
   }
 
