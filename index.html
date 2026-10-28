@@ -15,6 +15,7 @@
 * { box-sizing:border-box; }
 html,body {
   margin:0;width:100%;height:100%;overflow:hidden;
+  overscroll-behavior:none;-webkit-tap-highlight-color:transparent;
   font-family:"Trebuchet MS",system-ui,sans-serif;color:var(--ink);
 }
 body {
@@ -131,8 +132,12 @@ header>* { pointer-events:auto; }
 #stage.dragging { cursor:grabbing; }
 #world {
   position:absolute;left:0;top:0;width:1px;height:1px;
-  transform-origin:0 0;will-change:transform;
+  transform-origin:0 0;
 }
+/* Zoomed-out level of detail: skip effects that are too small to see anyway */
+#world.far .card { box-shadow:none;transition:none; }
+#world.far .card:before { display:none; }
+#world.far .card .date,#world.far .card .card-tools { visibility:hidden; }
 .sky-decoration {
   position:fixed;z-index:0;pointer-events:none;user-select:none;
   line-height:1;opacity:.68;filter:drop-shadow(0 0 12px #9ddcff30);
@@ -185,7 +190,7 @@ header>* { pointer-events:auto; }
 /* Like heart (top-right corner of the frame) */
 .heart-badge {
   position:absolute;top:-15px;right:-15px;width:42px;height:38px;z-index:3;
-  pointer-events:none;filter:drop-shadow(0 3px 5px #0006);
+  pointer-events:none;
 }
 .heart-badge svg { display:block;width:100%;height:100%; }
 .heart-badge .heart-count {
@@ -304,6 +309,14 @@ header>* { pointer-events:auto; }
     font-size:10px;line-height:1.3;text-align:right;
   }
   #viewerHint { max-width:90vw;white-space:normal;line-height:1.4; }
+}
+/* Touch devices: backdrop blur is very costly while the wall moves, and these panels are almost opaque anyway */
+@media (pointer:coarse),(max-width:600px) {
+  .brand,#capacityBar,#status,#modal { -webkit-backdrop-filter:none;backdrop-filter:none; }
+  .brand,#status { background:#102849f2; }
+  #capacityBar { background:#102849ee; }
+  #modal { background:#06152bec; }
+  .sky-decoration { filter:none; }
 }
 @media(prefers-reduced-motion:reduce) {
   .card { animation-duration:.01ms;transition:none; }
@@ -720,8 +733,19 @@ function createRandomCircularLayout() {
   });
 }
 
+let isFar=false,gestureTimer=0;
 function applyTransform() {
   world.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${scale})`;
+  /* Zoomed-out level of detail, with hysteresis so it doesn't flicker at the threshold */
+  const far=isFar?scale<.58:scale<.5;
+  if(far!==isFar){isFar=far;world.classList.toggle("far",far);}
+}
+/* will-change only while the wall is moving; releasing it afterwards lets the browser
+   re-rasterize at the settled zoom (sharper, and far lighter on memory when zoomed out). */
+function beginGesture(){clearTimeout(gestureTimer);world.style.willChange="transform";}
+function endGestureSoon(){
+  clearTimeout(gestureTimer);
+  gestureTimer=setTimeout(()=>{world.style.willChange="auto";},250);
 }
 function scheduleTransform() {
   if(transformFrame)return;
@@ -773,6 +797,10 @@ async function render(animate=true) {
     card.style.setProperty("--from-y",`${-pos.y}px`);
     card.style.setProperty("--delay",animate?`${Math.min(index*5,250)}ms`:"0ms");
     card.dataset.id=String(photo.id);
+    {
+      const sxp=tx+pos.x*scale,syp=ty+pos.y*scale,m=Math.max(width,height)*scale;
+      if(sxp<-m||sxp>window.innerWidth+m||syp<-m||syp>window.innerHeight+m)card.style.animation="none";
+    }
 
     const img=document.createElement("img");
     img.alt="Our memory";
@@ -1097,8 +1125,10 @@ async function editDate(photo){
 }
 
 /* Likes: heart badge with counter. Needs a "likes" integer column on the photos table. */
+const HEART_D="M16 28.5C14 26.8 2 18.6 2 9.6 2 4.9 5.6 1.5 9.8 1.5c2.4 0 4.7 1.2 6.2 3.2 1.5-2 3.8-3.2 6.2-3.2 4.2 0 7.8 3.4 7.8 8.1 0 9-12 17.2-14 18.9z";
 const HEART_SVG=
-  '<svg viewBox="0 0 32 29" aria-hidden="true">'+
+  '<svg viewBox="0 0 32 29" aria-hidden="true" style="overflow:visible">'+
+  '<path transform="translate(0 2.5)" fill="#000" fill-opacity=".28" d="'+HEART_D+'"/>'+
   '<path d="M16 28.5C14 26.8 2 18.6 2 9.6 2 4.9 5.6 1.5 9.8 1.5c2.4 0 4.7 1.2 6.2 3.2 1.5-2 3.8-3.2 6.2-3.2 4.2 0 7.8 3.4 7.8 8.1 0 9-12 17.2-14 18.9z" '+
   'fill="#ff5c8a" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>';
 
@@ -1241,6 +1271,7 @@ stage.addEventListener("pointerdown",event=>{
   if(event.button!==undefined&&event.button!==0)return;
   if(event.target.closest("button,input,a,select,textarea"))return;
   stage.setPointerCapture(event.pointerId);
+  beginGesture();
   activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
 
   if(activePointers.size===1){
@@ -1296,6 +1327,7 @@ function endPointer(event){
   if(!activePointers.size){
     stage.classList.remove("dragging");
     movedDuringGesture=false;pinchState=null;pointerStart=null;
+    endGestureSoon();
   }
 }
 stage.addEventListener("pointerup",endPointer);
@@ -1334,11 +1366,16 @@ stage.addEventListener("wheel",event=>{
   const px=event.clientX-rect.left,py=event.clientY-rect.top;
   tx=px-(px-tx)*(scale/old);
   ty=py-(py-ty)*(scale/old);
+  beginGesture();endGestureSoon();
   scheduleTransform();
 },{passive:false});
 
-/* Resize layout only after resize activity settles. */
+/* Resize layout only after resize activity settles. Card sizes depend on width only,
+   so height-only resizes (e.g. the phone's address bar showing/hiding) are ignored. */
+let lastLayoutWidth=window.innerWidth;
 window.addEventListener("resize",()=>{
+  if(window.innerWidth===lastLayoutWidth)return;
+  lastLayoutWidth=window.innerWidth;
   clearTimeout(resizeTimer);
   resizeTimer=setTimeout(()=>render(false),250);
 });
@@ -1358,6 +1395,17 @@ document.addEventListener("keydown",event=>{
   let w=0,h=0,stars=[],shooters=[],bursts=[],last=0,nextShoot=3,sx=tx,sy=ty;
   const TAU=Math.PI*2;
   const wrap=(v,max)=>((v%max)+max)%max;
+  const coarse=window.matchMedia("(pointer:coarse)").matches;
+
+  /* Pre-rendered glow sprites: one drawImage per star instead of two arcs + colour strings */
+  function makeSprite(rgb){
+    const c=document.createElement("canvas");c.width=c.height=64;
+    const g=c.getContext("2d");
+    g.fillStyle=`rgba(${rgb},.16)`;g.beginPath();g.arc(32,32,32,0,TAU);g.fill();
+    g.fillStyle=`rgba(${rgb},1)`;g.beginPath();g.arc(32,32,8,0,TAU);g.fill();
+    return c;
+  }
+  const spriteBlue=makeSprite("175,225,255"),spritePink=makeSprite("255,170,205");
 
   function build(){
     const count=Math.round(Math.min(170,Math.max(50,w*h/9000)));
@@ -1375,11 +1423,12 @@ document.addEventListener("keydown",event=>{
   }
 
   function resize(){
-    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const dpr=Math.min(window.devicePixelRatio||1,coarse?1.5:2);
+    const prevW=w;
     w=window.innerWidth;h=window.innerHeight;
     canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    build();
+    if(!stars.length||prevW!==w)build();
     if(reduce)frame(performance.now());
   }
 
@@ -1423,10 +1472,9 @@ document.addEventListener("keydown",event=>{
       const r=s.r*(1+boost*.9);
       const col=s.pink?"255,170,205":"175,225,255";
 
-      ctx.fillStyle=`rgba(${col},${a*.16})`;
-      ctx.beginPath();ctx.arc(x,y,r*4,0,TAU);ctx.fill();
-      ctx.fillStyle=`rgba(${col},${a})`;
-      ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
+      ctx.globalAlpha=a;
+      ctx.drawImage(s.pink?spritePink:spriteBlue,x-r*4,y-r*4,r*8,r*8);
+      ctx.globalAlpha=1;
 
       if(s.depth>.85){
         ctx.strokeStyle=`rgba(${col},${a*.6})`;
@@ -1489,7 +1537,12 @@ document.addEventListener("keydown",event=>{
     ctx.globalCompositeOperation="source-over";
   }
 
-  function loop(now){frame(now);requestAnimationFrame(loop);}
+  function loop(now){
+    requestAnimationFrame(loop);
+    if(document.hidden||$("viewer").classList.contains("open"))return;
+    if(coarse&&now-last<33)return;
+    frame(now);
+  }
 
   const leave=()=>{mouse.x=-9999;mouse.y=-9999;};
   window.addEventListener("pointermove",e=>{mouse.x=e.clientX;mouse.y=e.clientY;},{passive:true});
