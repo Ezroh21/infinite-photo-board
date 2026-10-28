@@ -131,7 +131,7 @@ header>* { pointer-events:auto; }
 #stage.dragging { cursor:grabbing; }
 #world {
   position:absolute;left:0;top:0;width:1px;height:1px;
-  transform-origin:0 0;
+  transform-origin:0 0;will-change:transform;
 }
 /* Zoomed-out level of detail: skip effects that are too small to see anyway */
 #world.far .card,#world.moving .card { box-shadow:none;transition:none; }
@@ -744,7 +744,7 @@ function applyTransform() {
    re-rasterize at the settled zoom (sharper, and far lighter on memory when zoomed out). */
 function beginGesture(){clearTimeout(gestureTimer);gesturing=true;}
 /* While zooming, shadows/text are dropped so each re-draw at the new scale is cheap */
-function beginZoom(){beginGesture();world.classList.add("moving");}
+function beginZoom(){beginGesture();}
 function endGestureSoon(){
   clearTimeout(gestureTimer);
   gestureTimer=setTimeout(()=>{gesturing=false;world.classList.remove("moving");},200);
