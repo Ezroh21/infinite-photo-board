@@ -30,7 +30,6 @@ body {
     radial-gradient(2px 2px at 88% 78%,#fff 98%,transparent),
     radial-gradient(2px 2px at 95% 12%,#a9dcff 98%,transparent),
     radial-gradient(ellipse at 50% 50%,#16355b 0%,#0b1d3a 48%,#050d20 100%);
-  background-attachment:fixed;
 }
 button,input { font:inherit; }
 button {
@@ -1540,7 +1539,7 @@ document.addEventListener("keydown",event=>{
   function loop(now){
     requestAnimationFrame(loop);
     if(document.hidden||$("viewer").classList.contains("open"))return;
-    if(coarse&&now-last<33)return;
+    if(coarse&&(now-last<33||world.style.willChange==="transform"))return;
     frame(now);
   }
 
@@ -1577,8 +1576,12 @@ async function init(){
   session=data.session;
   updateAuthUI();
 
+  let lastUserId=session?.user?.id||null;
   db.auth.onAuthStateChange((_event,newSession)=>{
     session=newSession;
+    const id=newSession?.user?.id||null;
+    if(id===lastUserId)return;   /* same user (initial event, token refresh, tab refocus): no rebuild */
+    lastUserId=id;
     updateAuthUI();
     setTimeout(()=>loadPhotos(),0);
   });
