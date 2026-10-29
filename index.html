@@ -150,6 +150,25 @@ header>* { pointer-events:auto; }
 /* Zoomed far out the 3D tilt is dropped: far fewer GPU layers while the whole wall is on screen */
 #world.far .card { transform:rotate(var(--rot,0deg)); }
 #world.far .glare { display:none; }
+
+/* Recessed "shadow box": the photo sits pushed in behind the frame, with a dark inner wall,
+   shading cast by the frame, and a parallax shift so it looks like it has real depth. */
+.card .well {
+  position:relative;overflow:hidden;border-radius:3px;
+  background:radial-gradient(ellipse at 50% 40%,#16305a 0%,#07122a 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.9),0 -1px 0 rgba(0,0,0,.22);
+}
+.card .well:after {
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  box-shadow:inset 0 5px 11px rgba(0,0,0,.65),inset 4px 0 9px rgba(0,0,0,.38),
+             inset -3px 0 8px rgba(0,0,0,.28),inset 0 -3px 7px rgba(0,0,0,.28);
+}
+.card .well img {
+  transform:translate(var(--hix,var(--ix,0px)),var(--hiy,var(--iy,0px))) scale(.94);
+  transition:transform .12s linear;
+}
+#world.far .card .well img { transform:none;transition:none; }
+#world.far .card .well:after { display:none; }
 .sky-decoration {
   position:fixed;z-index:0;pointer-events:none;user-select:none;
   line-height:1;opacity:.68;filter:drop-shadow(0 0 12px #9ddcff30);
@@ -839,8 +858,12 @@ async function render(animate=true) {
     card.style.setProperty("--rot",`${pos.rotation}deg`);
     {
       const tr=randomFromString(getPhotoKey(photo)+"-tilt");
-      card.style.setProperty("--rx",`${((tr()-.5)*12).toFixed(2)}deg`);
-      card.style.setProperty("--ry",`${((tr()-.5)*14).toFixed(2)}deg`);
+      const rxv=(tr()-.5)*12,ryv=(tr()-.5)*14;
+      card.style.setProperty("--rx",`${rxv.toFixed(2)}deg`);
+      card.style.setProperty("--ry",`${ryv.toFixed(2)}deg`);
+      /* the recessed photo shifts opposite to the tilt, like looking into a shadow box */
+      card.style.setProperty("--ix",`${(-ryv*.4).toFixed(2)}px`);
+      card.style.setProperty("--iy",`${(rxv*.4).toFixed(2)}px`);
     }
     card.style.setProperty("--from-x",`${-pos.x}px`);
     card.style.setProperty("--from-y",`${-pos.y}px`);
@@ -878,7 +901,10 @@ async function render(animate=true) {
 
     const glare=document.createElement("div");
     glare.className="glare";
-    card.append(img,date,tools,likeTools,glare);
+    const well=document.createElement("div");
+    well.className="well";
+    well.appendChild(img);
+    card.append(well,date,tools,likeTools,glare);
     setHeart(card,photo,false);
     fragment.appendChild(card);
   }
@@ -1486,12 +1512,14 @@ world.addEventListener("pointermove",event=>{
   card.style.setProperty("--hx",`${(-(py-.5)*28).toFixed(1)}deg`);
   card.style.setProperty("--gx",`${(px*100).toFixed(0)}%`);
   card.style.setProperty("--gy",`${(py*100).toFixed(0)}%`);
+  card.style.setProperty("--hix",`${(-(px-.5)*10).toFixed(1)}px`);
+  card.style.setProperty("--hiy",`${(-(py-.5)*10).toFixed(1)}px`);
 },{passive:true});
 world.addEventListener("pointerout",event=>{
   const card=event.target.closest&&event.target.closest(".card");
   if(!card||card.contains(event.relatedTarget))return;
   card.classList.remove("tilting");
-  ["--hx","--hy","--gx","--gy"].forEach(name=>card.style.removeProperty(name));
+  ["--hx","--hy","--gx","--gy","--hix","--hiy"].forEach(name=>card.style.removeProperty(name));
 });
 
 stage.addEventListener("wheel",event=>{
