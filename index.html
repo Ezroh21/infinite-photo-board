@@ -1454,17 +1454,7 @@ document.addEventListener("keydown",event=>{
   let w=0,h=0,stars=[],shooters=[],bursts=[],last=0,nextShoot=3,sx=tx,sy=ty;
   const TAU=Math.PI*2;
   const wrap=(v,max)=>((v%max)+max)%max;
-  const coarse=window.matchMedia("(pointer:coarse)").matches;
 
-  /* Pre-rendered glow sprites: one drawImage per star instead of two arcs + colour strings */
-  function makeSprite(rgb){
-    const c=document.createElement("canvas");c.width=c.height=64;
-    const g=c.getContext("2d");
-    g.fillStyle=`rgba(${rgb},.16)`;g.beginPath();g.arc(32,32,32,0,TAU);g.fill();
-    g.fillStyle=`rgba(${rgb},1)`;g.beginPath();g.arc(32,32,8,0,TAU);g.fill();
-    return c;
-  }
-  const spriteBlue=makeSprite("175,225,255"),spritePink=makeSprite("255,170,205");
 
   function build(){
     const count=Math.round(Math.min(170,Math.max(50,w*h/9000)));
@@ -1482,7 +1472,7 @@ document.addEventListener("keydown",event=>{
   }
 
   function resize(){
-    const dpr=Math.min(window.devicePixelRatio||1,coarse?1.5:2);
+    const dpr=Math.min(window.devicePixelRatio||1,2);
     const prevW=w;
     w=window.innerWidth;h=window.innerHeight;
     canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
@@ -1531,9 +1521,10 @@ document.addEventListener("keydown",event=>{
       const r=s.r*(1+boost*.9);
       const col=s.pink?"255,170,205":"175,225,255";
 
-      ctx.globalAlpha=a;
-      ctx.drawImage(s.pink?spritePink:spriteBlue,x-r*4,y-r*4,r*8,r*8);
-      ctx.globalAlpha=1;
+      ctx.fillStyle=`rgba(${col},${a*.16})`;
+      ctx.beginPath();ctx.arc(x,y,r*4,0,TAU);ctx.fill();
+      ctx.fillStyle=`rgba(${col},${a})`;
+      ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();
 
       if(s.depth>.85){
         ctx.strokeStyle=`rgba(${col},${a*.6})`;
@@ -1599,7 +1590,6 @@ document.addEventListener("keydown",event=>{
   function loop(now){
     requestAnimationFrame(loop);
     if(document.hidden||$("viewer").classList.contains("open"))return;
-    if(coarse&&(now-last<33||gesturing))return;
     frame(now);
   }
 
