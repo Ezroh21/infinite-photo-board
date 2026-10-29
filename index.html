@@ -380,7 +380,7 @@ body.drawing .card { pointer-events:none; }
   </div>
   <div class="actions">
     <button id="drawBtn" type="button">✏️ Draw</button>
-    <button id="clearDrawBtn" type="button" class="danger">🧽 Clear drawings</button>
+    <button id="clearDrawBtn" type="button" class="danger">🧽 Clear my drawings</button>
     <button id="loginBtn">☁️ Owner login</button>
     <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
     <button id="titleBtn" class="hidden">✎ Wall title</button>
@@ -423,7 +423,7 @@ body.drawing .card { pointer-events:none; }
   </div>
   <label>Size <input id="brushSize" type="range" min="2" max="30" value="5"></label>
   <button id="undoDrawBtn" type="button" class="tool-btn">↶ Undo</button>
-  <button id="clearDrawBtn2" type="button" class="tool-btn danger">🧽 Clear all</button>
+  <button id="clearDrawBtn2" type="button" class="tool-btn danger">🧽 Clear mine</button>
   <button id="doneDrawBtn" type="button" class="tool-btn primary">✔ Done</button>
 </div>
 
@@ -844,19 +844,88 @@ const strokeBoxes=new WeakMap();
 let strokes=[],drawMode=false,currentStroke=null;
 let drawColor="#ff7eb6",brushSize=5,drawDpr=1,drawFrame=0;
 
-function loadDrawings(){
+/* Drawings are shared through Supabase (table "wall_drawings"):
+ * everyone can see them, but each owner account can only add / undo / clear their own. */
+const DRAW_TABLE="wall_drawings";
+let drawChannel=null,lastDrawLoad=0,migratingDrawings=false;
+const myId=()=>session?.user?.id||null;
+
+function normalizeStroke(row){
+  if(!row||!Array.isArray(row.points)||!row.points.length)return null;
+  return {id:row.id,owner:row.owner_id,c:String(row.color||"#ffffff"),w:Number(row.width)||1,p:row.points};
+}
+
+async function loadDrawings(skipMigrate){
+  if(!db)return;
+  lastDrawLoad=Date.now();
+  let rows=[];
+  for(let from=0;;from+=1000){   /* Supabase returns at most 1000 rows per request, so page through */
+    const {data,error}=await db.from(DRAW_TABLE)
+      .select("id,owner_id,color,width,points")
+      .order("created_at",{ascending:true}).order("id",{ascending:true})
+      .range(from,from+999);
+    if(error){status("Couldn't load drawings: "+error.message);console.error(error);return;}
+    rows=rows.concat(data||[]);
+    if(!data||data.length<1000)break;
+  }
+  const pending=strokes.filter(s=>s.pending);
+  strokes=rows.map(normalizeStroke).filter(Boolean).concat(pending);
+  updateDrawButtons();
+  renderDrawings();
+  if(!skipMigrate)migrateLocalDrawings();
+}
+
+/* One-time: move drawings made with the earlier device-only version into the shared table */
+async function migrateLocalDrawings(){
+  if(!session||migratingDrawings)return;
+  let raw=null;
+  try{raw=localStorage.getItem(DRAW_KEY);}catch(error){return;}
+  if(!raw)return;
+  migratingDrawings=true;
   try{
-    const raw=localStorage.getItem(DRAW_KEY);
-    const parsed=raw?JSON.parse(raw):[];
-    strokes=Array.isArray(parsed)
-      ?parsed.filter(s=>s&&typeof s.c==="string"&&Number(s.w)>0&&Array.isArray(s.p)&&s.p.length)
-      :[];
-  }catch(error){strokes=[];}
+    let old=[];
+    try{old=JSON.parse(raw);}catch(error){old=[];}
+    const rows=(Array.isArray(old)?old:[])
+      .filter(s=>s&&typeof s.c==="string"&&Number(s.w)>0&&Array.isArray(s.p)&&s.p.length)
+      .map(s=>({color:s.c,width:Number(s.w),points:s.p}));
+    for(let i=0;i<rows.length;i+=100){
+      const {error}=await db.from(DRAW_TABLE).insert(rows.slice(i,i+100));
+      if(error)throw error;
+    }
+    try{localStorage.removeItem(DRAW_KEY);}catch(error){}
+    if(rows.length){
+      status(`Moved ${rows.length} earlier drawings to the shared wall 💗`);
+      await loadDrawings(true);
+    }
+  }catch(error){
+    console.error("Drawing migration failed:",error);
+    status("Couldn't move your earlier drawings: "+(error.message||String(error)));
+  }finally{migratingDrawings=false;}
 }
-function saveDrawings(){
-  try{localStorage.setItem(DRAW_KEY,JSON.stringify(strokes));return true;}
-  catch(error){status("Couldn't save the drawing (browser storage may be full).");return false;}
+
+/* Live updates: see each other's strokes appear and disappear without refreshing */
+function subscribeDrawings(){
+  if(!db||drawChannel||!db.channel)return;
+  drawChannel=db.channel("wall-drawings")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:DRAW_TABLE},payload=>{
+      const s=normalizeStroke(payload.new);
+      if(!s||strokes.some(x=>x.id===s.id))return;
+      strokes.push(s);
+      updateDrawButtons();requestDrawRender();
+    })
+    .on("postgres_changes",{event:"DELETE",schema:"public",table:DRAW_TABLE},payload=>{
+      const id=payload.old&&payload.old.id;
+      if(!id)return;
+      const before=strokes.length;
+      strokes=strokes.filter(x=>x.id!==id);
+      if(strokes.length!==before){updateDrawButtons();requestDrawRender();}
+    })
+    .subscribe();
 }
+/* Safety net in case live updates are not enabled: refresh when you come back to the tab */
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&db&&Date.now()-lastDrawLoad>15000)loadDrawings(true);
+});
 function strokeBox(s){
   let box=strokeBoxes.get(s);
   if(box)return box;
@@ -933,38 +1002,75 @@ function finishStroke(){
   currentStroke=null;
   s.p=s.p.map(p=>[Math.round(p[0]*10)/10,Math.round(p[1]*10)/10]);
   s.w=Math.round(s.w*100)/100;
+  if(!session){requestDrawRender();return;}
+  s.owner=session.user.id;
+  s.pending=true;
   strokes.push(s);
-  saveDrawings();
   updateDrawButtons();
   requestDrawRender();
+  saveStroke(s);
+}
+async function saveStroke(s){
+  const {data,error}=await db.from(DRAW_TABLE)
+    .insert({color:s.c,width:s.w,points:s.p}).select("id").single();
+  if(error){
+    strokes=strokes.filter(x=>x!==s);
+    updateDrawButtons();renderDrawings();
+    status("Couldn't save drawing: "+error.message);
+    return;
+  }
+  s.id=data.id;
+  delete s.pending;
+  /* the live-update event can arrive before this reply; keep only one copy */
+  strokes=strokes.filter(x=>x===s||x.id!==s.id);
+  updateDrawButtons();
 }
 function cancelStroke(){
   currentStroke=null;
   requestDrawRender();
 }
-function undoStroke(){
-  if(!strokes.length){status("Nothing to undo.");return;}
-  strokes.pop();
-  saveDrawings();
-  updateDrawButtons();
-  renderDrawings();
+async function undoStroke(){
+  const me=myId();
+  let index=-1;
+  for(let i=strokes.length-1;i>=0;i--){
+    if(strokes[i].owner===me&&!strokes[i].pending){index=i;break;}
+  }
+  if(index<0){status("You have no drawings to undo.");return;}
+  const [removed]=strokes.splice(index,1);
+  updateDrawButtons();renderDrawings();
+  const {error}=await db.from(DRAW_TABLE).delete().eq("id",removed.id);
+  if(error){
+    strokes.push(removed);
+    updateDrawButtons();renderDrawings();
+    status("Couldn't undo: "+error.message);
+  }
 }
-function clearDrawings(){
-  if(!strokes.length){status("There are no drawings to clear.");return;}
-  if(!confirm("Delete ALL drawings from the wall?\n\nThis cannot be undone."))return;
-  strokes=[];
+async function clearDrawings(){
+  const me=myId();
+  if(!me){status("Log in to manage your drawings.");return;}
+  if(!strokes.some(s=>s.owner===me)){status("You have no drawings to clear.");return;}
+  if(!confirm("Delete ALL of YOUR drawings from the wall?\n\nDrawings made by the other account stay. This cannot be undone."))return;
+  const {error}=await db.from(DRAW_TABLE).delete().eq("owner_id",me);
+  if(error){status("Couldn't clear your drawings: "+error.message);return;}
+  strokes=strokes.filter(s=>s.owner!==me);
   currentStroke=null;
-  saveDrawings();
   updateDrawButtons();
   renderDrawings();
-  status("All drawings cleared ☁️");
+  status("Your drawings are cleared ☁️");
 }
 function updateDrawButtons(){
-  $("undoDrawBtn").disabled=!strokes.length;
-  $("clearDrawBtn").disabled=!strokes.length;
-  $("clearDrawBtn2").disabled=!strokes.length;
+  const me=myId();
+  const hasMine=!!me&&strokes.some(s=>s.owner===me);
+  $("undoDrawBtn").disabled=!hasMine;
+  $("clearDrawBtn").disabled=!hasMine;
+  $("clearDrawBtn2").disabled=!hasMine;
 }
 function setDrawMode(on){
+  if(on&&!session){
+    status("Log in with your owner account to draw. Everyone can still see the drawings 💗");
+    $("modal").classList.add("open");$("email").focus();
+    return;
+  }
   drawMode=!!on;
   if(!drawMode)cancelStroke();
   document.body.classList.toggle("drawing",drawMode);
@@ -1004,6 +1110,8 @@ function updateAuthUI() {
   $("settingsMenu").classList.toggle("hidden",!session);
   document.body.classList.toggle("editing",!!session);
   if(!session)closeSettingsMenu();
+  if(!session&&drawMode)setDrawMode(false);
+  updateDrawButtons();
 }
 
 /* Render cards with lazy-loaded thumbnail images. */
@@ -1875,7 +1983,6 @@ document.addEventListener("keydown",event=>{
 
 /* Startup */
 async function init(){
-  loadDrawings();
   updateDrawButtons();
   resizeDrawCanvas();
   applyTransform();
@@ -1886,6 +1993,8 @@ async function init(){
 
   session=data.session;
   updateAuthUI();
+  subscribeDrawings();
+  loadDrawings();
 
   let lastUserId=session?.user?.id||null;
   db.auth.onAuthStateChange((_event,newSession)=>{
@@ -1894,7 +2003,7 @@ async function init(){
     if(id===lastUserId)return;   /* same user (initial event, token refresh, tab refocus): no rebuild */
     lastUserId=id;
     updateAuthUI();
-    setTimeout(()=>loadPhotos(),0);
+    setTimeout(()=>{loadPhotos();loadDrawings();},0);
   });
 
   await loadPhotos();
