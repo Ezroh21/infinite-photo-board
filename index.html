@@ -270,6 +270,7 @@ header>* { pointer-events:auto; }
   pointer-events:none;
 }
 #viewerClose { position:absolute;z-index:3;top:18px;right:18px; }
+#viewerSave { position:absolute;z-index:3;top:18px;left:18px;background:#8dd8f7; }
 #viewerHint {
   position:absolute;z-index:3;left:50%;bottom:18px;transform:translateX(-50%);
   color:white;background:#102f40d9;padding:8px 12px;border-radius:999px;
@@ -407,6 +408,7 @@ header>* { pointer-events:auto; }
 </div>
 
 <div id="viewer">
+  <button id="viewerSave" type="button">⬇ Save</button>
   <button id="viewerClose">✕ Close</button>
   <div id="viewerContent"></div>
   <div id="viewerHint">Scroll or pinch to zoom · Drag to explore · Double-click to zoom</div>
@@ -893,7 +895,9 @@ function updateViewerTransform() {
 }
 function resetViewerZoom(){viewerScale=1;viewerX=0;viewerY=0;updateViewerTransform();}
 
+let viewerPhoto=null;
 function openViewer(photo) {
+  viewerPhoto=photo;
   closeSettingsMenu();
   const content=$("viewerContent");
   content.replaceChildren();
@@ -922,6 +926,41 @@ function closeViewer() {
   viewerPointers.clear();viewerGesture=null;
 }
 $("viewerClose").onclick=closeViewer;
+
+/* Save the full-quality original to the device (iPhone/iPad: share sheet -> Save Image) */
+$("viewerSave").onclick=async()=>{
+  const photo=viewerPhoto;
+  if(!photo)return;
+  const btn=$("viewerSave");
+  btn.disabled=true;btn.textContent="Saving…";
+  try{
+    const res=await fetch(originalUrl(photo));
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const blob=await res.blob();
+    const ext=({"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif",
+      "image/heic":"heic","image/heif":"heif","image/avif":"avif"})[blob.type]||"jpg";
+    let name=(photo.original_filename||"memory").replace(/[\\/:*?"<>|]+/g,"_");
+    if(!/\.[a-z0-9]{2,5}$/i.test(name))name+="."+ext;
+    const file=new File([blob],name,{type:blob.type||"image/jpeg"});
+    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||
+      (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+    if(ios&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file]});}
+      catch(shareError){if(shareError.name!=="AbortError")throw shareError;}
+    }else{
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement("a");
+      link.href=url;link.download=name;
+      document.body.appendChild(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+    }
+    status("Photo saved 💗");
+  }catch(error){
+    status("Couldn't save photo: "+(error.message||String(error)));
+  }finally{
+    btn.disabled=false;btn.textContent="⬇ Save";
+  }
+};
 $("viewer").addEventListener("click",event=>{
   if(event.target===$("viewer"))closeViewer();
 });
