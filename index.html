@@ -138,6 +138,18 @@ header>* { pointer-events:auto; }
 #world.far .card:before,#world.moving .card:before { display:none; }
 #world.far .card .date,#world.far .card .card-tools,
 #world.moving .card .date,#world.moving .card .card-tools { visibility:hidden; }
+
+/* 3D: light glare that follows the mouse, smooth tilt tracking */
+.card .glare {
+  position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;opacity:0;
+  background:radial-gradient(circle at var(--gx,50%) var(--gy,50%),rgba(255,255,255,.55),rgba(255,255,255,0) 55%);
+  transition:opacity .25s ease;
+}
+.card:hover .glare { opacity:1; }
+.card.tilting { transition:transform .08s linear,box-shadow .35s ease; }
+/* Zoomed far out the 3D tilt is dropped: far fewer GPU layers while the whole wall is on screen */
+#world.far .card { transform:rotate(var(--rot,0deg)); }
+#world.far .glare { display:none; }
 .sky-decoration {
   position:fixed;z-index:0;pointer-events:none;user-select:none;
   line-height:1;opacity:.68;filter:drop-shadow(0 0 12px #9ddcff30);
@@ -149,8 +161,9 @@ header>* { pointer-events:auto; }
 .card {
   position:absolute;width:var(--card-width,160px);padding:8px 8px 10px;
   background:var(--paper);border-radius:5px;
-  box-shadow:0 7px 18px #0005,0 0 0 1px #ffffff50;
-  transform:rotate(var(--rot,0deg));transform-origin:center center;
+  box-shadow:0 1px 0 #e4dccb,0 2px 0 #d8cfbc,0 3px 0 #cdc3ae,0 9px 18px #0006,0 0 0 1px #ffffff50;
+  transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--rot,0deg));
+  transform-origin:center center;
   user-select:none;contain:layout style;
   animation:bloom .45s cubic-bezier(.18,.75,.28,1) backwards;
   animation-delay:var(--delay,0ms);
@@ -159,7 +172,7 @@ header>* { pointer-events:auto; }
 /* Newest upload batch: holographic "SSR card" frame (static, so it costs nothing while panning) */
 .card.new-upload {
   background:linear-gradient(135deg,#7c3aed 0%,#c026d3 20%,#ff5fa2 38%,#ffb86b 50%,#5eead4 66%,#60a5fa 82%,#a855f7 100%);
-  box-shadow:0 7px 18px #0005,0 0 0 1px #ffffffaa,0 0 14px 3px #b57bffaa,0 0 34px 8px #c026d355;
+  box-shadow:0 1px 0 #6d28d9,0 2px 0 #5b21b6,0 3px 0 #4c1d95,0 9px 18px #0006,0 0 0 1px #ffffffaa,0 0 14px 3px #b57bffaa,0 0 34px 8px #c026d355;
 }
 .card.new-upload:after {
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
@@ -169,7 +182,7 @@ header>* { pointer-events:auto; }
 #world.far .card.new-upload { box-shadow:0 0 14px 5px #b57bffcc; }
 @media (hover:hover) {
   .card:hover {
-    transform:rotate(0deg) scale(1.2);
+    transform:perspective(700px) rotateX(var(--hx,0deg)) rotateY(var(--hy,0deg)) scale(1.2);
     z-index:20;
     box-shadow:0 18px 38px #0007,0 0 0 1px #ffffff80,0 0 24px #9ddcff55;
   }
@@ -184,7 +197,7 @@ header>* { pointer-events:auto; }
 }
 @keyframes bloom {
   from { transform:translate(var(--from-x),var(--from-y)) scale(.12);opacity:0; }
-  to { transform:rotate(var(--rot,0deg));opacity:1; }
+  to { transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--rot,0deg));opacity:1; }
 }
 .card img {
   display:block;width:100%;height:auto;aspect-ratio:var(--photo-ratio,1);
@@ -824,6 +837,11 @@ async function render(animate=true) {
     card.style.left=`${pos.x-width/2}px`;
     card.style.top=`${pos.y-height/2}px`;
     card.style.setProperty("--rot",`${pos.rotation}deg`);
+    {
+      const tr=randomFromString(getPhotoKey(photo)+"-tilt");
+      card.style.setProperty("--rx",`${((tr()-.5)*12).toFixed(2)}deg`);
+      card.style.setProperty("--ry",`${((tr()-.5)*14).toFixed(2)}deg`);
+    }
     card.style.setProperty("--from-x",`${-pos.x}px`);
     card.style.setProperty("--from-y",`${-pos.y}px`);
     card.style.setProperty("--delay",animate?`${Math.min(index*5,250)}ms`:"0ms");
@@ -858,7 +876,9 @@ async function render(animate=true) {
       '<button type="button" data-action="like">♥ Like</button>'+
       '<button type="button" data-action="resetlikes" class="danger">Reset ♥</button>';
 
-    card.append(img,date,tools,likeTools);
+    const glare=document.createElement("div");
+    glare.className="glare";
+    card.append(img,date,tools,likeTools,glare);
     setHeart(card,photo,false);
     fragment.appendChild(card);
   }
@@ -1452,6 +1472,27 @@ world.addEventListener("click",event=>{
   const photo=photos.find(p=>String(p.id)===card.dataset.id);
   if(photo)openViewer(photo);
 },true);
+
+/* 3D tilt that follows the mouse (hover devices only). offsetX/Y are measured in the card's own
+   coordinate space, so the tilt itself can't feed back into the reading. */
+world.addEventListener("pointermove",event=>{
+  if(event.pointerType!=="mouse"||isFar)return;
+  const card=event.target;
+  if(!card.classList||!card.classList.contains("card"))return;
+  const px=Math.min(1,Math.max(0,event.offsetX/card.offsetWidth));
+  const py=Math.min(1,Math.max(0,event.offsetY/card.offsetHeight));
+  card.classList.add("tilting");
+  card.style.setProperty("--hy",`${((px-.5)*28).toFixed(1)}deg`);
+  card.style.setProperty("--hx",`${(-(py-.5)*28).toFixed(1)}deg`);
+  card.style.setProperty("--gx",`${(px*100).toFixed(0)}%`);
+  card.style.setProperty("--gy",`${(py*100).toFixed(0)}%`);
+},{passive:true});
+world.addEventListener("pointerout",event=>{
+  const card=event.target.closest&&event.target.closest(".card");
+  if(!card||card.contains(event.relatedTarget))return;
+  card.classList.remove("tilting");
+  ["--hx","--hy","--gx","--gy"].forEach(name=>card.style.removeProperty(name));
+});
 
 stage.addEventListener("wheel",event=>{
   event.preventDefault();
