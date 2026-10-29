@@ -156,11 +156,19 @@ header>* { pointer-events:auto; }
   animation-delay:var(--delay,0ms);
   transition:transform .35s cubic-bezier(.2,.9,.3,1.25),box-shadow .35s ease;
 }
+/* Newest upload batch: faint warm glow (static, so it costs nothing while panning) */
+.card.new-upload {
+  box-shadow:0 7px 18px #0005,0 0 0 1px #ffffff50,0 0 12px 3px #ffe49a66,0 0 30px 8px #ffe49a33;
+}
+#world.far .card.new-upload { box-shadow:0 0 12px 4px #ffe49a99; }
 @media (hover:hover) {
   .card:hover {
     transform:rotate(0deg) scale(1.2);
     z-index:20;
     box-shadow:0 18px 38px #0007,0 0 0 1px #ffffff80,0 0 24px #9ddcff55;
+  }
+  .card.new-upload:hover {
+    box-shadow:0 18px 38px #0007,0 0 0 1px #ffffff80,0 0 26px 6px #ffe49a88;
   }
 }
 .card:before {
@@ -473,6 +481,16 @@ function niceDate(value) {
   });
 }
 
+/* Newest upload batch = photos sharing the latest uploaded_at (one value per upload session). */
+function latestUploadTime() {
+  let latest = 0;
+  for (const photo of photos) {
+    const time = photo.uploaded_at ? new Date(photo.uploaded_at).getTime() : 0;
+    if (time > latest) latest = time;
+  }
+  return latest;
+}
+
 /* Update the count and progress bar without showing remaining-photo text. */
 function updateCapacityBar() {
   const count = photos.length;
@@ -783,6 +801,7 @@ async function render(animate=true) {
 
   createRandomCircularLayout();
   const fragment=document.createDocumentFragment();
+  const latestUpload=latestUploadTime();
 
   for(let index=0;index<photos.length;index++){
     const photo=photos[index];
@@ -792,6 +811,8 @@ async function render(animate=true) {
     const width=cardWidth(photo),ratio=photoRatio(photo),height=cardHeight(photo);
     const card=document.createElement("article");
     card.className="card";
+    if(latestUpload&&photo.uploaded_at&&new Date(photo.uploaded_at).getTime()===latestUpload)
+      card.classList.add("new-upload");
     card.style.setProperty("--card-width",`${width}px`);
     card.style.setProperty("--photo-ratio",String(ratio));
     card.style.left=`${pos.x-width/2}px`;
@@ -1076,6 +1097,7 @@ $("fileInput").onchange=async event=>{
   if(photos.length>=MAX_PHOTOS){status(`Photo board full! Maximum: ${MAX_PHOTOS} photos.`);return;}
 
   busy=true;
+  const batchTime=new Date().toISOString();   /* same for every photo in this upload */
   let added=0,skipped=0,failed=0,lastError="";
   const knownHashes=new Set(photos.map(p=>p.content_sha256).filter(Boolean));
 
@@ -1124,11 +1146,19 @@ $("fileInput").onchange=async event=>{
           caption:"",
           captured_at:modifiedDate?modifiedDate.toISOString():null,
           x:0,y:0,width:thumbnail.width,height:thumbnail.height,
-          content_sha256:digest
+          content_sha256:digest,
+          uploaded_at:batchTime
         };
 
-        const {data:row,error:rowError}=await db.from("photos")
+        let {data:row,error:rowError}=await db.from("photos")
           .insert(insertRow).select().single();
+
+        /* If the uploaded_at column hasn't been added yet, still save the photo (just without the glow) */
+        if(rowError&&/uploaded_at/.test(rowError.message||"")){
+          delete insertRow.uploaded_at;
+          ({data:row,error:rowError}=await db.from("photos")
+            .insert(insertRow).select().single());
+        }
 
         if(rowError)throw new Error("Database insert: "+rowError.message);
 
