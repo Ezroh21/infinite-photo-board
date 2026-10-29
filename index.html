@@ -163,11 +163,27 @@ header>* { pointer-events:auto; }
   box-shadow:inset 0 5px 11px rgba(0,0,0,.65),inset 4px 0 9px rgba(0,0,0,.38),
              inset -3px 0 8px rgba(0,0,0,.28),inset 0 -3px 7px rgba(0,0,0,.28);
 }
-.card .well img {
-  transform:translate(var(--hix,var(--ix,0px)),var(--hiy,var(--iy,0px))) scale(.94);
-  transition:transform .12s linear;
+/* Back layer: the same photo, enlarged and darkened, sitting deep in the box. It moves the
+   opposite way to the front photo and at a different speed, which is what sells the depth. */
+.card .well .back {
+  position:absolute;inset:-14%;background-size:cover;background-position:center;
+  transform:translate(calc(var(--mx,0) * 18px - var(--ix,0px) * 1.6),calc(var(--my,0) * 18px - var(--iy,0px) * 1.6));
 }
-#world.far .card .well img { transform:none;transition:none; }
+/* Front photo: floats above the back layer and casts a shadow onto it */
+.card .well img {
+  position:relative;
+  transform:translate(calc(var(--mx,0) * -10px + var(--hix,var(--ix,0px))),calc(var(--my,0) * -10px + var(--hiy,var(--iy,0px)))) scale(.86);
+  box-shadow:0 7px 14px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.3);
+  transition:transform .12s linear,box-shadow .2s ease;
+}
+@media (hover:hover) {
+  .card:hover .well img {
+    transform:translate(var(--hix,0px),var(--hiy,0px)) scale(.97);
+    box-shadow:0 14px 26px rgba(0,0,0,.75),0 0 0 1px rgba(255,255,255,.4);
+  }
+}
+#world.far .card .well img { transform:none;box-shadow:none;transition:none; }
+#world.far .card .well .back { display:none; }
 #world.far .card .well:after { display:none; }
 .sky-decoration {
   position:fixed;z-index:0;pointer-events:none;user-select:none;
@@ -181,7 +197,7 @@ header>* { pointer-events:auto; }
   position:absolute;width:var(--card-width,160px);padding:8px 8px 10px;
   background:var(--paper);border-radius:5px;
   box-shadow:0 1px 0 #e4dccb,0 2px 0 #d8cfbc,0 3px 0 #cdc3ae,0 9px 18px #0006,0 0 0 1px #ffffff50;
-  transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--rot,0deg));
+  transform:perspective(700px) rotateX(calc(var(--rx,0deg) + var(--my,0) * -9deg)) rotateY(calc(var(--ry,0deg) + var(--mx,0) * 11deg)) rotate(var(--rot,0deg));
   transform-origin:center center;
   user-select:none;contain:layout style;
   animation:bloom .45s cubic-bezier(.18,.75,.28,1) backwards;
@@ -216,7 +232,7 @@ header>* { pointer-events:auto; }
 }
 @keyframes bloom {
   from { transform:translate(var(--from-x),var(--from-y)) scale(.12);opacity:0; }
-  to { transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--rot,0deg));opacity:1; }
+  to { transform:perspective(700px) rotateX(calc(var(--rx,0deg) + var(--my,0) * -9deg)) rotateY(calc(var(--ry,0deg) + var(--mx,0) * 11deg)) rotate(var(--rot,0deg));opacity:1; }
 }
 .card img {
   display:block;width:100%;height:auto;aspect-ratio:var(--photo-ratio,1);
@@ -903,7 +919,11 @@ async function render(animate=true) {
     glare.className="glare";
     const well=document.createElement("div");
     well.className="well";
-    well.appendChild(img);
+    const back=document.createElement("div");
+    back.className="back";
+    const backImage=`linear-gradient(rgba(6,14,32,.5),rgba(6,14,32,.5)),url("${displayUrl(photo)}")`;
+    img.addEventListener("load",()=>{back.style.backgroundImage=backImage;},{once:true});
+    well.append(back,img);
     card.append(well,date,tools,likeTools,glare);
     setHeart(card,photo,false);
     fragment.appendChild(card);
@@ -1453,6 +1473,11 @@ stage.addEventListener("pointermove",event=>{
     const dx=event.clientX-pointerStart.x,dy=event.clientY-pointerStart.y;
     if(Math.hypot(dx,dy)>5)movedDuringGesture=true;
     tx=pointerStart.tx+dx;ty=pointerStart.ty+dy;scheduleTransform();
+    if(!gyroActive&&event.pointerType==="touch"&&!isFar){
+      motion.tx=Math.max(-1,Math.min(1,-(event.movementX||0)*.2));
+      motion.ty=Math.max(-1,Math.min(1,-(event.movementY||0)*.2));
+      pushMotion();
+    }
   }
 });
 function endPointer(event){
@@ -1469,6 +1494,7 @@ function endPointer(event){
     stage.classList.remove("dragging");
     movedDuringGesture=false;pinchState=null;pointerStart=null;
     endGestureSoon();
+    if(!gyroActive){motion.tx=0;motion.ty=0;pushMotion();}
   }
 }
 stage.addEventListener("pointerup",endPointer);
@@ -1498,6 +1524,47 @@ world.addEventListener("click",event=>{
   const photo=photos.find(p=>String(p.id)===card.dataset.id);
   if(photo)openViewer(photo);
 },true);
+
+/* Motion input for phones: tilting the phone (gyroscope) tilts every card and shifts the depth
+   layers. If there's no gyroscope, dragging the wall does it instead. Values are -1..1 on #world. */
+const motion={x:0,y:0,tx:0,ty:0,lastX:0,lastY:0,raf:0};
+let gyroActive=false,gyroBase=null;
+function pushMotion(){
+  if(motion.raf)return;
+  motion.raf=requestAnimationFrame(()=>{
+    motion.raf=0;
+    motion.x+=(motion.tx-motion.x)*.18;
+    motion.y+=(motion.ty-motion.y)*.18;
+    if(Math.abs(motion.x-motion.lastX)>.004||Math.abs(motion.y-motion.lastY)>.004){
+      motion.lastX=motion.x;motion.lastY=motion.y;
+      world.style.setProperty("--mx",motion.x.toFixed(3));
+      world.style.setProperty("--my",motion.y.toFixed(3));
+    }
+    if(Math.abs(motion.tx-motion.x)>.004||Math.abs(motion.ty-motion.y)>.004)pushMotion();
+  });
+}
+function onOrientation(event){
+  if(event.gamma==null||event.beta==null||isFar)return;
+  gyroActive=true;
+  if(!gyroBase)gyroBase={g:event.gamma,b:event.beta};
+  /* the neutral position slowly follows how you hold the phone */
+  gyroBase.g+=(event.gamma-gyroBase.g)*.02;
+  gyroBase.b+=(event.beta-gyroBase.b)*.02;
+  motion.tx=Math.max(-1,Math.min(1,(event.gamma-gyroBase.g)/20));
+  motion.ty=Math.max(-1,Math.min(1,(event.beta-gyroBase.b)/20));
+  pushMotion();
+}
+function enableGyro(){
+  if(typeof DeviceOrientationEvent==="undefined")return;
+  const start=()=>window.addEventListener("deviceorientation",onOrientation,{passive:true});
+  if(typeof DeviceOrientationEvent.requestPermission==="function"){
+    /* iPhone/iPad: needs a tap to grant motion access */
+    const ask=()=>DeviceOrientationEvent.requestPermission()
+      .then(result=>{if(result==="granted")start();}).catch(()=>{});
+    window.addEventListener("touchend",ask,{once:true});
+  }else start();
+}
+if(window.matchMedia("(pointer:coarse)").matches)enableGyro();
 
 /* 3D tilt that follows the mouse (hover devices only). offsetX/Y are measured in the card's own
    coordinate space, so the tilt itself can't feed back into the reading. */
