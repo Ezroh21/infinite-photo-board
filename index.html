@@ -250,6 +250,27 @@ body.drawing .card { pointer-events:none; }
 #brushSize { width:90px;accent-color:#8dd8f7; }
 #drawToolbar .tool-btn { padding:6px 11px;font-size:12px;box-shadow:none; }
 #drawToolbar .tool-btn:hover { box-shadow:none; }
+#drawToolbar { padding:10px 14px;row-gap:10px;column-gap:14px;border-radius:22px; }
+#drawToolbar .tool-group {
+  display:flex;gap:4px;align-items:center;padding:3px;
+  border-radius:999px;background:#ffffff14;
+}
+#drawToolbar .actions-group { padding:0;background:none; }
+#drawToolbar .tool-tab {
+  padding:7px 13px;font-size:12px;box-shadow:none;
+  background:transparent;color:#d6ecfb;
+}
+#drawToolbar .tool-tab:hover { transform:none;box-shadow:none;background:#ffffff1f; }
+#drawToolbar .tool-tab.active { background:#8dd8f7;color:#164e69; }
+#drawToolbar .swatches { transition:opacity .2s; }
+#drawToolbar .swatches.dim { opacity:.3;pointer-events:none; }
+#drawToolbar .size-ctl { display:flex;align-items:center;gap:8px;font-size:11px;color:#c9e6fa; }
+.size-preview {
+  width:34px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:#ffffff14;
+}
+.size-preview i { display:block;border-radius:50%;background:#ff7eb6;width:5px;height:5px; }
+.size-preview.eraser i { background:transparent!important;border:2px dashed #e4f2ff; }
 
 #empty {
   position:fixed;inset:0;z-index:2;display:flex;align-items:center;
@@ -380,7 +401,6 @@ body.drawing .card { pointer-events:none; }
   </div>
   <div class="actions">
     <button id="drawBtn" type="button">✏️ Draw</button>
-    <button id="clearDrawBtn" type="button" class="danger">🧽 Clear my drawings</button>
     <button id="loginBtn">☁️ Owner login</button>
     <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
     <button id="titleBtn" class="hidden">✎ Wall title</button>
@@ -412,6 +432,10 @@ body.drawing .card { pointer-events:none; }
 <canvas id="drawCanvas" aria-hidden="true"></canvas>
 
 <div id="drawToolbar" class="hidden" role="toolbar" aria-label="Drawing tools">
+  <div class="tool-group" role="group" aria-label="Tool">
+    <button id="penBtn" type="button" class="tool-tab active" aria-pressed="true">✏️ Pen</button>
+    <button id="eraserBtn" type="button" class="tool-tab" aria-pressed="false">⌫ Eraser</button>
+  </div>
   <div class="swatches" id="swatches">
     <button type="button" class="swatch active" data-color="#ff7eb6" style="background:#ff7eb6" aria-label="Pink"></button>
     <button type="button" class="swatch" data-color="#ffffff" style="background:#ffffff" aria-label="White"></button>
@@ -421,10 +445,16 @@ body.drawing .card { pointer-events:none; }
     <button type="button" class="swatch" data-color="#c4b5fd" style="background:#c4b5fd" aria-label="Purple"></button>
     <button type="button" class="swatch" data-color="#fb923c" style="background:#fb923c" aria-label="Orange"></button>
   </div>
-  <label>Size <input id="brushSize" type="range" min="2" max="30" value="5"></label>
-  <button id="undoDrawBtn" type="button" class="tool-btn">↶ Undo</button>
-  <button id="clearDrawBtn2" type="button" class="tool-btn danger">🧽 Clear mine</button>
-  <button id="doneDrawBtn" type="button" class="tool-btn primary">✔ Done</button>
+  <label class="size-ctl">
+    <span id="sizeLabel">Size</span>
+    <input id="brushSize" type="range" min="2" max="40" value="5">
+    <span id="sizePreview" class="size-preview"><i></i></span>
+  </label>
+  <div class="tool-group actions-group">
+    <button id="undoDrawBtn" type="button" class="tool-btn">↶ Undo</button>
+    <button id="clearDrawBtn2" type="button" class="tool-btn danger">🧽 Clear mine</button>
+    <button id="doneDrawBtn" type="button" class="tool-btn primary">✔ Done</button>
+  </div>
 </div>
 
 <div class="sky-decoration sky-cloud" style="left:4%;top:22%">☁️</div>
@@ -843,6 +873,9 @@ const drawCanvas=$("drawCanvas"),dctx=drawCanvas.getContext("2d");
 const strokeBoxes=new WeakMap();
 let strokes=[],drawMode=false,currentStroke=null;
 let drawColor="#ff7eb6",brushSize=5,drawDpr=1,drawFrame=0;
+let drawTool="pen",eraserSize=14,erasing=false,eraseLast=null,eraserPos=null;
+let eraseDeleteIds=new Set();
+const eraserRadiusPx=()=>eraserSize*1.2;   /* eraser radius in screen pixels */
 
 /* Drawings are shared through Supabase (table "wall_drawings"):
  * everyone can see them, but each owner account can only add / undo / clear their own. */
@@ -965,6 +998,21 @@ function paintStroke(s){
 function renderDrawings(){
   dctx.setTransform(1,0,0,1,0,0);
   dctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  paintStrokes();
+  paintEraserRing();
+}
+function paintEraserRing(){
+  if(!drawMode||drawTool!=="eraser"||!eraserPos)return;
+  dctx.setTransform(drawDpr,0,0,drawDpr,0,0);
+  dctx.lineWidth=1.5;
+  dctx.setLineDash([4,3]);
+  dctx.strokeStyle="rgba(255,255,255,.9)";
+  dctx.beginPath();
+  dctx.arc(eraserPos.x,eraserPos.y,eraserRadiusPx(),0,Math.PI*2);
+  dctx.stroke();
+  dctx.setLineDash([]);
+}
+function paintStrokes(){
   if(!strokes.length&&!currentStroke)return;
   dctx.setTransform(drawDpr*scale,0,0,drawDpr*scale,drawDpr*tx,drawDpr*ty);
   /* Only paint strokes that are on screen */
@@ -1029,6 +1077,86 @@ function cancelStroke(){
   currentStroke=null;
   requestDrawRender();
 }
+
+/* Eraser: cuts away the parts of YOUR lines it touches. The cut line becomes new, shorter strokes;
+   everything is written to the database when you lift your finger / release the mouse. */
+function distToSeg(p,a,b){
+  const dx=b[0]-a[0],dy=b[1]-a[1],len=dx*dx+dy*dy;
+  let t=len?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len:0;
+  t=Math.max(0,Math.min(1,t));
+  return Math.hypot(p[0]-(a[0]+t*dx),p[1]-(a[1]+t*dy));
+}
+function eraseSegment(a,b){
+  const me=myId();
+  if(!me)return;
+  const R=eraserRadiusPx()/scale;   /* eraser radius in wall units */
+  const minX=Math.min(a[0],b[0]),maxX=Math.max(a[0],b[0]);
+  const minY=Math.min(a[1],b[1]),maxY=Math.max(a[1],b[1]);
+  let changed=false;
+  for(let i=strokes.length-1;i>=0;i--){
+    const s=strokes[i];
+    if(s.owner!==me||s.pending)continue;
+    const lim=R+s.w/2,box=strokeBox(s);
+    if(box.r<minX-lim||box.l>maxX+lim||box.b<minY-lim||box.t>maxY+lim)continue;
+    const keep=s.p.map(pt=>distToSeg(pt,a,b)>lim);
+    if(keep.every(Boolean))continue;
+    changed=true;
+    const pieces=[];
+    let run=[];
+    const flush=()=>{if(run.length>=2)pieces.push(run);run=[];};
+    for(let j=0;j<s.p.length;j++){
+      if(keep[j])run.push(s.p[j]);else flush();
+    }
+    flush();
+    if(s.id)eraseDeleteIds.add(s.id);
+    strokes.splice(i,1,...pieces.map(p=>({owner:me,c:s.c,w:s.w,p,fresh:true})));
+  }
+  if(changed){updateDrawButtons();requestDrawRender();}
+}
+function startErase(event){
+  erasing=true;
+  eraserPos={x:event.clientX,y:event.clientY};
+  eraseLast=toWorld(event);
+  eraseSegment(eraseLast,eraseLast);
+  requestDrawRender();
+}
+function eraseTo(event){
+  if(!erasing)return;
+  eraserPos={x:event.clientX,y:event.clientY};
+  const point=toWorld(event);
+  eraseSegment(eraseLast,point);
+  eraseLast=point;
+  requestDrawRender();
+}
+async function finishErase(){
+  if(!erasing)return;
+  erasing=false;eraseLast=null;
+  const del=[...eraseDeleteIds];
+  eraseDeleteIds=new Set();
+  const fresh=strokes.filter(s=>s.fresh);
+  if(!del.length&&!fresh.length)return;
+  fresh.forEach(s=>{s.pending=true;delete s.fresh;});
+  try{
+    if(fresh.length){
+      const {data,error}=await db.from(DRAW_TABLE)
+        .insert(fresh.map(s=>({color:s.c,width:s.w,points:s.p}))).select("id");
+      if(error)throw error;
+      fresh.forEach((s,i)=>{s.id=data[i].id;delete s.pending;});
+      const ids=new Set(fresh.map(s=>s.id));
+      strokes=strokes.filter(s=>fresh.includes(s)||!ids.has(s.id));   /* drop live-update duplicates */
+    }
+    if(del.length){
+      const {error}=await db.from(DRAW_TABLE).delete().in("id",del);
+      if(error)throw error;
+    }
+    updateDrawButtons();
+  }catch(error){
+    console.error("Erase failed:",error);
+    status("Couldn't save the eraser changes: "+(error.message||String(error)));
+    strokes=strokes.filter(s=>!fresh.includes(s));
+    loadDrawings(true);   /* resync with what is really saved */
+  }
+}
 async function undoStroke(){
   const me=myId();
   let index=-1;
@@ -1062,7 +1190,6 @@ function updateDrawButtons(){
   const me=myId();
   const hasMine=!!me&&strokes.some(s=>s.owner===me);
   $("undoDrawBtn").disabled=!hasMine;
-  $("clearDrawBtn").disabled=!hasMine;
   $("clearDrawBtn2").disabled=!hasMine;
 }
 function setDrawMode(on){
@@ -1072,7 +1199,7 @@ function setDrawMode(on){
     return;
   }
   drawMode=!!on;
-  if(!drawMode)cancelStroke();
+  if(!drawMode){cancelStroke();if(erasing)finishErase();eraserPos=null;}
   document.body.classList.toggle("drawing",drawMode);
   $("drawToolbar").classList.toggle("hidden",!drawMode);
   $("drawBtn").classList.toggle("primary",drawMode);
@@ -1086,13 +1213,42 @@ function setDrawMode(on){
 $("drawBtn").onclick=()=>setDrawMode(!drawMode);
 $("doneDrawBtn").onclick=()=>setDrawMode(false);
 $("undoDrawBtn").onclick=undoStroke;
-$("clearDrawBtn").onclick=clearDrawings;
 $("clearDrawBtn2").onclick=clearDrawings;
-$("brushSize").addEventListener("input",event=>{brushSize=Number(event.target.value)||5;});
+
+function updateSizePreview(){
+  const eraser=drawTool==="eraser";
+  const dot=$("sizePreview").firstElementChild;
+  const d=Math.max(3,Math.min(30,eraser?eraserRadiusPx()*2:brushSize));
+  dot.style.width=dot.style.height=d+"px";
+  dot.style.background=eraser?"":drawColor;
+  $("sizePreview").classList.toggle("eraser",eraser);
+}
+function setDrawTool(tool){
+  drawTool=tool;
+  const eraser=tool==="eraser";
+  $("penBtn").classList.toggle("active",!eraser);
+  $("eraserBtn").classList.toggle("active",eraser);
+  $("penBtn").setAttribute("aria-pressed",String(!eraser));
+  $("eraserBtn").setAttribute("aria-pressed",String(eraser));
+  $("swatches").classList.toggle("dim",eraser);
+  $("sizeLabel").textContent=eraser?"Eraser":"Size";
+  $("brushSize").value=eraser?eraserSize:brushSize;
+  updateSizePreview();
+  if(eraser)status("Eraser rubs out parts of your own lines 🧽");
+  else{eraserPos=null;requestDrawRender();}
+}
+$("penBtn").onclick=()=>setDrawTool("pen");
+$("eraserBtn").onclick=()=>setDrawTool("eraser");
+$("brushSize").addEventListener("input",event=>{
+  const value=Number(event.target.value)||5;
+  if(drawTool==="eraser")eraserSize=value;else brushSize=value;
+  updateSizePreview();
+});
 $("swatches").addEventListener("click",event=>{
   const swatch=event.target.closest(".swatch");
   if(!swatch)return;
   drawColor=swatch.dataset.color;
+  updateSizePreview();
   $("swatches").querySelectorAll(".swatch").forEach(el=>el.classList.toggle("active",el===swatch));
 });
 window.addEventListener("resize",resizeDrawCanvas);
@@ -1687,11 +1843,13 @@ stage.addEventListener("pointerdown",event=>{
   if(activePointers.size===1){
     pointerStart={x:event.clientX,y:event.clientY,tx,ty};
     pinchState=null;movedDuringGesture=false;
-    if(drawMode)startStroke(event);
+    if(drawMode&&drawTool==="eraser")startErase(event);
+    else if(drawMode)startStroke(event);
     else stage.classList.add("dragging");
   }else if(activePointers.size===2){
     /* A second finger means "move/zoom the wall", not "draw": drop the half-drawn stroke */
     if(currentStroke)cancelStroke();
+    if(erasing)finishErase();
     const points=[...activePointers.values()];
     pointerStart=null;
     pinchState={
@@ -1702,6 +1860,10 @@ stage.addEventListener("pointerdown",event=>{
   }
 });
 stage.addEventListener("pointermove",event=>{
+  if(drawMode&&drawTool==="eraser"){
+    eraserPos={x:event.clientX,y:event.clientY};
+    requestDrawRender();
+  }
   if(!activePointers.has(event.pointerId))return;
   activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
 
@@ -1719,6 +1881,13 @@ stage.addEventListener("pointermove",event=>{
       ty=mid.y-(pinchState.mid.y-pinchState.ty)*(scale/pinchState.scale);
       scheduleTransform();
     }
+    movedDuringGesture=true;
+    return;
+  }
+
+  if(erasing){
+    const batch=event.getCoalescedEvents?event.getCoalescedEvents():[];
+    if(batch.length)batch.forEach(eraseTo);else eraseTo(event);
     movedDuringGesture=true;
     return;
   }
@@ -1741,6 +1910,8 @@ function endPointer(event){
   const dragged=movedDuringGesture;
   activePointers.delete(event.pointerId);
   if(currentStroke)finishStroke();
+  if(erasing)finishErase();
+  if(event.pointerType==="touch"&&eraserPos){eraserPos=null;requestDrawRender();}
   if(dragged)suppressClickUntil=Date.now()+300;
   pinchState=null;
   if(activePointers.size===1){
@@ -1755,6 +1926,9 @@ function endPointer(event){
 }
 stage.addEventListener("pointerup",endPointer);
 stage.addEventListener("pointercancel",endPointer);
+stage.addEventListener("pointerleave",()=>{
+  if(eraserPos&&!erasing){eraserPos=null;requestDrawRender();}
+});
 
 /* Delegated click handling avoids one click listener per card. */
 world.addEventListener("click",event=>{
@@ -1984,6 +2158,7 @@ document.addEventListener("keydown",event=>{
 /* Startup */
 async function init(){
   updateDrawButtons();
+  updateSizePreview();
   resizeDrawCanvas();
   applyTransform();
   updateCapacityBar();
