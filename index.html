@@ -524,7 +524,7 @@ const { createClient } = supabase;
 let db = null;
 let session = null;
 let photos = [];
-let scale = 1;
+let scale = window.innerWidth <= 600 ? 0.9 : 1;   /* phones start a little zoomed out; the wall itself is identical everywhere */
 let tx = window.innerWidth / 2;
 let ty = window.innerHeight / 2;
 let busy = false;
@@ -547,6 +547,23 @@ function esc(value) {
 }
 
 function getPhotoKey(photo) { return String(photo.id); }
+
+/* Everyone must place photos in the same order, otherwise the wall (and the drawings on it) differ. */
+let lastLayoutSig = "";
+function numOrInf(v) { const n = Number(v); return v == null || !Number.isFinite(n) ? Infinity : n; }
+function timeOrZero(v) { const t = v ? new Date(v).getTime() : 0; return Number.isFinite(t) ? t : 0; }
+function comparePhotos(a, b) {
+  const sa = numOrInf(a.sort_order), sb = numOrInf(b.sort_order);
+  if (sa !== sb) return sa < sb ? -1 : 1;
+  const ta = timeOrZero(a.uploaded_at), tb = timeOrZero(b.uploaded_at);
+  if (ta !== tb) return ta < tb ? -1 : 1;
+  const ia = String(a.id), ib = String(b.id);
+  return ia < ib ? -1 : ia > ib ? 1 : 0;
+}
+/* Anything that can move a photo on the wall goes into this fingerprint */
+function layoutSignature(list) {
+  return list.map(p => [p.id, p.width, p.height].join(":")).join("|");
+}
 
 function fileUrl(path) {
   return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
@@ -630,6 +647,11 @@ const BIG_MIN = 1.3;       // smallest boost for an enlarged photo
 const BIG_MAX = 2;         // hard cap: never more than 2x
 const sizeBoostCache = new Map();
 
+/* Layout constants: identical on every device and for every user (logged in or not),
+   so the wall is always arranged exactly the same way. */
+const LAYOUT_BASE_WIDTH = 160;
+const TOOLS_SPACE = 72;   /* room reserved under each card for the owner buttons */
+
 function sizeBoost(photo) {
   const key = getPhotoKey(photo);
   if (sizeBoostCache.has(key)) return sizeBoostCache.get(key);
@@ -642,7 +664,7 @@ function sizeBoost(photo) {
 }
 
 function cardWidth(photo) {
-  const base = window.innerWidth <= 600 ? 145 : 160;
+  const base = LAYOUT_BASE_WIDTH;
   const ratio = photoRatio(photo);
   let width = base;
   if (ratio >= 1.35) width = base*1.22;
@@ -651,7 +673,7 @@ function cardWidth(photo) {
 }
 
 function cardHeight(photo) {
-  return cardWidth(photo)/photoRatio(photo)+8+14+18+(session?72:0);
+  return cardWidth(photo)/photoRatio(photo)+8+14+18+TOOLS_SPACE;
 }
 
 async function loadPhotoDimensions() {
@@ -735,7 +757,7 @@ function createRandomCircularLayout() {
   photoPositions.clear();
   if(!photos.length) return;
 
-  const gap=window.innerWidth<=600?2:4;
+  const gap=4;
   const cellSize=220;
   const grid=new Map();
   const placed=[];
@@ -775,13 +797,13 @@ function createRandomCircularLayout() {
     }
   }
 
-  photos.forEach(photo=>{
+  photos.forEach((photo,photoIndex)=>{
     const rng=randomFromString(getPhotoKey(photo)+"-circle");
     const rotation=rng()*4-2;
     const width=cardWidth(photo),height=cardHeight(photo);
     const baseRadius=Math.max(
       Math.max(width,height)*.65,
-      Math.sqrt(photos.length)*Math.max(width,height)*.43
+      Math.sqrt(photoIndex+1)*Math.max(width,height)*.43   /* depends only on photos placed before it, so adding photos never moves older ones */
     );
     let chosen=null;
 
@@ -1278,6 +1300,7 @@ async function render(animate=true) {
   if(version!==renderVersion)return;
 
   createRandomCircularLayout();
+  lastLayoutSig=layoutSignature(photos);
   const fragment=document.createDocumentFragment();
   const latestUpload=latestUploadTime();
 
@@ -1357,18 +1380,71 @@ function preloadThumbs(){
   setTimeout(()=>{for(let k=0;k<3;k++)next();},1500);
 }
 
-async function loadPhotos() {
+async function loadPhotos(quiet) {
   if(!db){status("Supabase is not configured.");return;}
-  status("Gathering our memories…");
+  if(!quiet)status("Gathering our memories…");
   const {data,error}=await db.from("photos").select("*").order("sort_order",{ascending:true});
   if(error){status("Couldn't load photos: "+error.message);console.error(error);return;}
-  photos=data||[];
+  const next=(data||[]).slice().sort(comparePhotos);
+  lastPhotoLoad=Date.now();
+  if(quiet&&world.children.length&&layoutSignature(next)===lastLayoutSig){
+    photos=next;            /* same wall as before: just refresh likes and dates in place */
+    refreshCardsInPlace();
+    return;
+  }
+  photos=next;
   await render(false);
   preloadThumbs();
-  status(photos.length
-    ?`${photos.length} memories in our little universe 💗`
-    :"Your universe is ready for its first memory ☁️");
+  status(quiet
+    ?"The wall was updated 💗"
+    :photos.length
+      ?`${photos.length} memories in our little universe 💗`
+      :"Your universe is ready for its first memory ☁️");
 }
+
+function refreshCardsInPlace(){
+  const byId=new Map(photos.map(p=>[String(p.id),p]));
+  for(const card of world.children){
+    const photo=byId.get(card.dataset.id);
+    if(!photo)continue;
+    setHeart(card,photo,false);
+    const date=card.querySelector(".date");
+    if(date)date.textContent=niceDate(photo.captured_at);
+  }
+  updateCapacityBar();
+}
+
+/* Live sync: when either of you adds or removes a photo, the other device updates by itself,
+   so both walls always have the same photos in the same places. */
+let photoChannel=null,photoReloadTimer=0,lastPhotoLoad=0;
+function schedulePhotoReload(){
+  clearTimeout(photoReloadTimer);
+  photoReloadTimer=setTimeout(()=>{
+    if(busy){schedulePhotoReload();return;}   /* wait until our own upload / delete is finished */
+    loadPhotos(true);
+  },800);
+}
+function subscribePhotos(){
+  if(!db||photoChannel||!db.channel)return;
+  photoChannel=db.channel("wall-photos")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"photos"},schedulePhotoReload)
+    .on("postgres_changes",{event:"DELETE",schema:"public",table:"photos"},schedulePhotoReload)
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"photos"},payload=>{
+      const row=payload.new;
+      const photo=row&&photos.find(p=>String(p.id)===String(row.id));
+      if(!photo)return;
+      const moves=("width" in row&&row.width!==photo.width)||("height" in row&&row.height!==photo.height)||
+        ("sort_order" in row&&row.sort_order!==photo.sort_order);
+      Object.assign(photo,row);
+      if(moves)schedulePhotoReload();
+      else refreshCardsInPlace();
+    })
+    .subscribe();
+}
+/* Safety net in case live updates are not enabled: re-check when you come back to the tab */
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&db&&!busy&&Date.now()-lastPhotoLoad>15000)loadPhotos(true);
+});
 
 /* Settings menu */
 function openSettingsMenu() {
@@ -1641,6 +1717,7 @@ $("fileInput").onchange=async event=>{
         if(rowError)throw new Error("Database insert: "+rowError.message);
 
         photos.push(row);
+        photos.sort(comparePhotos);
         photoDimensions.set(getPhotoKey(row),{
           width:thumbnail.width,height:thumbnail.height,
           ratio:thumbnail.width/thumbnail.height
@@ -2169,6 +2246,7 @@ async function init(){
   session=data.session;
   updateAuthUI();
   subscribeDrawings();
+  subscribePhotos();
   loadDrawings();
 
   let lastUserId=session?.user?.id||null;
