@@ -201,6 +201,41 @@ header>* { pointer-events:auto; }
 .card .card-tools button { padding:5px 8px;font-size:10px;box-shadow:none;background:#e8f7ff; }
 .editing .card .card-tools { display:flex; }
 
+/* Owner tools: a small ⋯ handle on each photo opens a floating panel.
+   The panel floats over the wall, so it never changes how much room a photo takes. */
+.card-menu-btn {
+  display:none;position:absolute;left:-10px;top:-10px;z-index:4;
+  width:26px;height:26px;padding:0;align-items:center;justify-content:center;
+  font-size:16px;line-height:1;font-weight:900;box-shadow:0 2px 6px #0005;background:#f5fbff;
+}
+.card-menu-btn:hover { transform:none;box-shadow:0 2px 6px #0005; }
+.editing .card-menu-btn { display:flex; }
+.card-panel {
+  display:none;position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  width:max-content;max-width:230px;flex-wrap:wrap;justify-content:center;gap:5px;padding:8px;
+  background:#f8fcff;border-radius:14px;box-shadow:0 10px 28px #0007;z-index:6;
+}
+.card.tools-open { z-index:60; }
+.card.tools-open .card-panel { display:flex; }
+.card-panel button { padding:5px 9px;font-size:11px;box-shadow:none;background:#e8f7ff; }
+.card-panel button:hover { transform:none;box-shadow:none;background:#d4efff; }
+.card-panel button.danger { background:#ffe0e8;color:#8c3452; }
+.card-panel .size-row {
+  display:flex;gap:4px;align-items:center;padding:2px;border-radius:999px;background:#e8f7ff;
+}
+.card-panel .size-row button { background:#fff;min-width:28px; }
+.card-panel .size-row button[data-action="sizereset"] { min-width:46px; }
+
+/* When a photo changes size, the photos around it glide to their new places */
+#world.relayout:not(.far) .card {
+  transition:
+    left .5s cubic-bezier(.22,.8,.3,1),
+    top .5s cubic-bezier(.22,.8,.3,1),
+    width .5s cubic-bezier(.22,.8,.3,1),
+    transform .35s cubic-bezier(.2,.9,.3,1.25),
+    box-shadow .35s ease;
+}
+
 /* Like heart (top-right corner of the frame) */
 .heart-badge {
   position:absolute;top:-15px;right:-15px;width:42px;height:38px;z-index:3;
@@ -387,6 +422,7 @@ body.drawing .card { pointer-events:none; }
 }
 @media(prefers-reduced-motion:reduce) {
   .card { animation-duration:.01ms;transition:none; }
+  #world.relayout .card { transition:none!important; }
   button { transition:none; }
 }
 </style>
@@ -550,6 +586,7 @@ function getPhotoKey(photo) { return String(photo.id); }
 
 /* Everyone must place photos in the same order, otherwise the wall (and the drawings on it) differ. */
 let lastLayoutSig = "";
+let layoutColumnsMissing = false;   /* true until the size_scale / pos_x / pos_y SQL has been run */
 function numOrInf(v) { const n = Number(v); return v == null || !Number.isFinite(n) ? Infinity : n; }
 function timeOrZero(v) { const t = v ? new Date(v).getTime() : 0; return Number.isFinite(t) ? t : 0; }
 function comparePhotos(a, b) {
@@ -562,7 +599,7 @@ function comparePhotos(a, b) {
 }
 /* Anything that can move a photo on the wall goes into this fingerprint */
 function layoutSignature(list) {
-  return list.map(p => [p.id, p.width, p.height].join(":")).join("|");
+  return list.map(p => [p.id, p.width, p.height, p.pos_x, p.pos_y, p.size_scale].join(":")).join("|");
 }
 
 function fileUrl(path) {
@@ -650,7 +687,14 @@ const sizeBoostCache = new Map();
 /* Layout constants: identical on every device and for every user (logged in or not),
    so the wall is always arranged exactly the same way. */
 const LAYOUT_BASE_WIDTH = 160;
-const TOOLS_SPACE = 72;   /* room reserved under each card for the owner buttons */
+const TOOLS_SPACE = 72;   /* extra room kept under each card's footprint (do not change: saved positions depend on it) */
+
+/* Sizes you can step through with the － ＋ buttons. A photo with no saved size uses its automatic size. */
+const SIZE_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.5, 2, 2.5, 3];
+function sizeScale(photo) {
+  const v = Number(photo.size_scale);
+  return photo.size_scale != null && Number.isFinite(v) && v > 0 ? v : sizeBoost(photo);
+}
 
 function sizeBoost(photo) {
   const key = getPhotoKey(photo);
@@ -669,7 +713,7 @@ function cardWidth(photo) {
   let width = base;
   if (ratio >= 1.35) width = base*1.22;
   else if (ratio <= .75) width = base*.88;
-  return width * sizeBoost(photo);
+  return width * sizeScale(photo);
 }
 
 function cardHeight(photo) {
@@ -797,7 +841,25 @@ function createRandomCircularLayout() {
     }
   }
 
+  /* Photos that already have a saved spot keep it exactly: that is what makes the wall identical
+     on every device, and what keeps drawings lined up with the photos. */
+  let savedCount=0;
+  photos.forEach(photo=>{
+    const x=Number(photo.pos_x),y=Number(photo.pos_y);
+    if(photo.pos_x==null||photo.pos_y==null||!Number.isFinite(x)||!Number.isFinite(y))return;
+    const rng0=randomFromString(getPhotoKey(photo)+"-circle");
+    const rotation=rng0()*4-2;
+    add(photo,getFrameBox(photo,x,y,rotation));
+    photoPositions.set(getPhotoKey(photo),{x,y,rotation});
+    frontier=Math.max(frontier,Math.hypot(x,y));
+    savedCount++;
+  });
+  /* Once the wall has saved spots, a new photo searches from the centre outward,
+     so it drops into the first gap that is big enough. */
+  const fillHoles=savedCount>0;
+
   photos.forEach((photo,photoIndex)=>{
+    if(photoPositions.has(getPhotoKey(photo)))return;
     const rng=randomFromString(getPhotoKey(photo)+"-circle");
     const rotation=rng()*4-2;
     const width=cardWidth(photo),height=cardHeight(photo);
@@ -811,7 +873,7 @@ function createRandomCircularLayout() {
        first collision-free spot, so each photo sits as close to the middle as it can. */
     const step=Math.max(12,Math.min(width,height)*.15);
     const maxSearch=baseRadius*2.2;
-    const startR=Math.max(0,frontier-Math.max(width,height)*1.2);
+    const startR=fillHoles?0:Math.max(0,frontier-Math.max(width,height)*1.2);
     for(let r=startR;r<=maxSearch&&!chosen;r+=step){
       const samples=r===0?1:Math.max(10,Math.ceil(r*Math.PI*2/(step*2)));
       const offset=rng()*Math.PI*2;
@@ -1340,26 +1402,38 @@ async function render(animate=true) {
     date.className="date";
     date.textContent=niceDate(photo.captured_at);
 
-    const tools=document.createElement("div");
-    tools.className="card-tools";
-    tools.innerHTML=
+    const menuBtn=document.createElement("button");
+    menuBtn.type="button";
+    menuBtn.className="card-menu-btn";
+    menuBtn.dataset.action="menu";
+    menuBtn.setAttribute("aria-label","Photo options");
+    menuBtn.textContent="⋯";
+
+    const panel=document.createElement("div");
+    panel.className="card-panel";
+    panel.innerHTML=
       '<button type="button" data-action="view">View</button>'+
       '<button type="button" data-action="date">Date</button>'+
+      '<button type="button" data-action="like">♥ Like</button>'+
+      '<button type="button" data-action="resetlikes" class="danger">Reset ♥</button>'+
+      '<span class="size-row">'+
+        '<button type="button" data-action="smaller" aria-label="Smaller">－</button>'+
+        '<button type="button" data-action="sizereset" title="Back to automatic size">Auto</button>'+
+        '<button type="button" data-action="bigger" aria-label="Bigger">＋</button>'+
+      '</span>'+
       '<button type="button" data-action="delete" class="danger">Remove</button>';
 
-    const likeTools=document.createElement("div");
-    likeTools.className="card-tools";
-    likeTools.innerHTML=
-      '<button type="button" data-action="like">♥ Like</button>'+
-      '<button type="button" data-action="resetlikes" class="danger">Reset ♥</button>';
-
-    card.append(img,date,tools,likeTools);
+    card.append(img,date,menuBtn,panel);
+    updateSizeLabel(card,photo);
     setHeart(card,photo,false);
     fragment.appendChild(card);
   }
 
   world.replaceChildren(fragment);
   $("empty").style.display=photos.length?"none":"flex";
+  /* Owners save any spot that was just worked out, so every device reads the same positions */
+  if(session&&!layoutColumnsMissing)adoptComputedPositions();
+  lastLayoutSig=layoutSignature(photos);
   applyTransform();
   updateCapacityBar();
 }
@@ -1386,6 +1460,7 @@ async function loadPhotos(quiet) {
   const {data,error}=await db.from("photos").select("*").order("sort_order",{ascending:true});
   if(error){status("Couldn't load photos: "+error.message);console.error(error);return;}
   const next=(data||[]).slice().sort(comparePhotos);
+  layoutColumnsMissing=next.length>0&&!("pos_x" in next[0]&&"size_scale" in next[0]);
   lastPhotoLoad=Date.now();
   if(quiet&&world.children.length&&layoutSignature(next)===lastLayoutSig){
     photos=next;            /* same wall as before: just refresh likes and dates in place */
@@ -1400,6 +1475,258 @@ async function loadPhotos(quiet) {
     :photos.length
       ?`${photos.length} memories in our little universe 💗`
       :"Your universe is ready for its first memory ☁️");
+}
+
+/* ───────────── Photo sizes and smart spacing ─────────────
+ * Every photo has a saved spot (pos_x / pos_y) and an optional saved size (size_scale) in the database.
+ * Resizing a photo pushes the photos that now overlap it out of the way, and shrinking one lets its
+ * neighbours slide in to fill the space. Only the photos that actually move are saved.
+ */
+const dirtyPos=new Set(),dirtySize=new Set();
+let flushTimer=0,flushing=false,relayoutTimer=0;
+const layoutSavePending=()=>flushing||dirtyPos.size>0||dirtySize.size>0;
+
+function closeCardMenus(except){
+  world.querySelectorAll(".card.tools-open").forEach(c=>{if(c!==except)c.classList.remove("tools-open");});
+}
+function toggleCardMenu(card){
+  const open=!card.classList.contains("tools-open");
+  closeCardMenus();
+  card.classList.toggle("tools-open",open);
+}
+function updateSizeLabel(card,photo){
+  const button=card.querySelector('[data-action="sizereset"]');
+  if(button)button.textContent=photo.size_scale==null?"Auto":`${Math.round(Number(photo.size_scale)*100)/100}×`;
+}
+
+/* Take the spots the layout just worked out and make them the photos' saved spots */
+function adoptComputedPositions(){
+  if(!session||layoutColumnsMissing)return false;
+  let count=0;
+  for(const photo of photos){
+    if(photo.pos_x!=null&&photo.pos_y!=null)continue;
+    const pos=photoPositions.get(getPhotoKey(photo));
+    if(!pos)continue;
+    pos.x=Math.round(pos.x*100)/100;
+    pos.y=Math.round(pos.y*100)/100;
+    photo.pos_x=pos.x;photo.pos_y=pos.y;
+    dirtyPos.add(getPhotoKey(photo));
+    count++;
+  }
+  if(count)scheduleFlush();
+  return count>0;
+}
+function scheduleFlush(){
+  clearTimeout(flushTimer);
+  flushTimer=setTimeout(flushLayoutSaves,400);
+}
+async function flushLayoutSaves(){
+  if(flushing){scheduleFlush();return;}
+  if(!session||layoutColumnsMissing||!db){dirtyPos.clear();dirtySize.clear();return;}
+  const posIds=new Set(dirtyPos),sizeIds=new Set(dirtySize);
+  dirtyPos.clear();dirtySize.clear();
+  const ids=new Set([...posIds,...sizeIds]);
+  if(!ids.size)return;
+  flushing=true;
+  const byId=new Map(photos.map(p=>[getPhotoKey(p),p]));
+  const jobs=[];
+  ids.forEach(key=>{
+    const photo=byId.get(key);
+    if(!photo)return;
+    const payload={};
+    if(posIds.has(key)){payload.pos_x=photo.pos_x;payload.pos_y=photo.pos_y;}
+    if(sizeIds.has(key))payload.size_scale=photo.size_scale==null?null:photo.size_scale;
+    jobs.push({id:photo.id,payload});
+  });
+  let failed=0,firstError="",cursor=0;
+  const worker=async()=>{
+    while(cursor<jobs.length){
+      const job=jobs[cursor++];
+      const {error}=await db.from("photos").update(job.payload).eq("id",job.id);
+      if(error){failed++;if(!firstError)firstError=error.message;}
+    }
+  };
+  try{await Promise.all(Array.from({length:Math.min(6,jobs.length)},worker));}
+  finally{flushing=false;}
+  if(failed){
+    status("Couldn't save the new layout ("+firstError+"). Check the layout SQL and the update permissions.");
+    loadPhotos(true);   /* go back to what is really saved */
+  }else if(dirtyPos.size||dirtySize.size)scheduleFlush();
+}
+
+/* Move the cards to their (new) spots, animated */
+function placeCards(animate){
+  if(animate){
+    world.classList.add("relayout");
+    clearTimeout(relayoutTimer);
+    relayoutTimer=setTimeout(()=>world.classList.remove("relayout"),700);
+  }
+  const byId=new Map(photos.map(p=>[getPhotoKey(p),p]));
+  const vw=window.innerWidth,vh=window.innerHeight;
+  const instant=[];
+  for(const card of world.children){
+    const photo=byId.get(card.dataset.id),pos=photo&&photoPositions.get(card.dataset.id);
+    if(!photo||!pos)continue;
+    const width=cardWidth(photo),height=cardHeight(photo);
+    const m=Math.max(width,height)*scale;
+    const sx=tx+pos.x*scale,sy=ty+pos.y*scale;
+    if(!animate||sx<-m||sx>vw+m||sy<-m||sy>vh+m){card.style.transition="none";instant.push(card);}
+    card.style.setProperty("--card-width",`${width}px`);
+    card.style.left=`${pos.x-width/2}px`;
+    card.style.top=`${pos.y-height/2}px`;
+    card.style.setProperty("--rot",`${pos.rotation}deg`);
+  }
+  if(instant.length){
+    void world.offsetWidth;   /* apply the instant moves, then give the cards their normal transitions back */
+    instant.forEach(card=>{card.style.transition="";});
+  }
+}
+
+function commitPos(item){
+  item.pos.x=Math.round(item.pos.x*100)/100;
+  item.pos.y=Math.round(item.pos.y*100)/100;
+  item.p.pos_x=item.pos.x;item.p.pos_y=item.pos.y;
+  dirtyPos.add(item.key);
+}
+
+/* Push apart every pair of photos that overlap. The photo that was resized never moves;
+   its neighbours are pushed away, and they in turn push theirs, until nothing overlaps. */
+function resolveOverlaps(seedKey){
+  const gap=4,cell=300;
+  const items=[];
+  for(const p of photos){
+    const key=getPhotoKey(p),pos=photoPositions.get(key);
+    if(pos)items.push({p,key,pos});
+  }
+  const moved=new Set();
+  const range=b=>[Math.floor(b.left/cell),Math.floor(b.right/cell),Math.floor(b.top/cell),Math.floor(b.bottom/cell)];
+  for(let pass=0;pass<200;pass++){
+    const boxes=items.map(it=>getFrameBox(it.p,it.pos.x,it.pos.y,it.pos.rotation));
+    const grid=new Map();
+    boxes.forEach((b,i)=>{
+      const [x0,x1,y0,y1]=range(b);
+      for(let gx=x0;gx<=x1;gx++)for(let gy=y0;gy<=y1;gy++){
+        const k=gx+","+gy;
+        let list=grid.get(k);
+        if(!list){list=[];grid.set(k,list);}
+        list.push(i);
+      }
+    });
+    const seen=new Set();
+    let any=false;
+    for(let i=0;i<items.length;i++){
+      const a=boxes[i];
+      const [x0,x1,y0,y1]=range(a);
+      for(let gx=x0;gx<=x1;gx++)for(let gy=y0;gy<=y1;gy++){
+        const list=grid.get(gx+","+gy);
+        if(!list)continue;
+        for(const j of list){
+          if(j<=i)continue;
+          const pair=i*items.length+j;
+          if(seen.has(pair))continue;
+          seen.add(pair);
+          const b=boxes[j];
+          if(!framesOverlap(a,b,gap))continue;
+          any=true;
+          const penX=Math.min(a.right,b.right)-Math.max(a.left,b.left)+gap;
+          const penY=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)+gap;
+          const axis=penX<=penY?"x":"y";
+          const pen=axis==="x"?penX:penY;
+          let dir=Math.sign(b[axis]-a[axis]);
+          if(dir===0)dir=(i+j)%2?1:-1;
+          const A=items[i],B=items[j];
+          let shareA=.5,shareB=.5;
+          if(A.key===seedKey){shareA=0;shareB=1;}
+          else if(B.key===seedKey){shareA=1;shareB=0;}
+          if(shareA){A.pos[axis]-=dir*pen*shareA;moved.add(A.key);}
+          if(shareB){B.pos[axis]+=dir*pen*shareB;moved.add(B.key);}
+        }
+      }
+    }
+    if(!any)break;
+  }
+  const byKey=new Map(items.map(it=>[it.key,it]));
+  moved.forEach(key=>{const it=byKey.get(key);if(it)commitPos(it);});
+  return moved;
+}
+
+/* Let photos near (cx,cy) slide toward the middle of the wall into any free space,
+   closest-to-the-middle first, so the gap closes up from the inside. */
+function fillGaps(cx,cy,radius,skipKey){
+  const gap=4,STEP=6;
+  const items=[];
+  for(const p of photos){
+    const key=getPhotoKey(p),pos=photoPositions.get(key);
+    if(pos)items.push({p,key,pos});
+  }
+  const boxes=items.map(it=>getFrameBox(it.p,it.pos.x,it.pos.y,it.pos.rotation));
+  const blocked=(idx,box)=>{
+    for(let k=0;k<boxes.length;k++){
+      if(k!==idx&&framesOverlap(box,boxes[k],gap))return true;
+    }
+    return false;
+  };
+  const near=[];
+  items.forEach((it,idx)=>{
+    if(it.key!==skipKey&&Math.hypot(it.pos.x-cx,it.pos.y-cy)<radius)near.push({it,idx});
+  });
+  near.sort((a,b)=>Math.hypot(a.it.pos.x,a.it.pos.y)-Math.hypot(b.it.pos.x,b.it.pos.y));
+  for(const {it,idx} of near){
+    let movedAny=false;
+    for(let n=0;n<150;n++){
+      let moved=false;
+      for(const axis of ["x","y"]){
+        const v=it.pos[axis];
+        if(Math.abs(v)<=STEP)continue;
+        const nx=axis==="x"?it.pos.x-Math.sign(v)*STEP:it.pos.x;
+        const ny=axis==="y"?it.pos.y-Math.sign(v)*STEP:it.pos.y;
+        const box=getFrameBox(it.p,nx,ny,it.pos.rotation);
+        if(blocked(idx,box))continue;
+        it.pos.x=nx;it.pos.y=ny;boxes[idx]=box;
+        moved=true;movedAny=true;
+      }
+      if(!moved)break;
+    }
+    if(movedAny)commitPos(it);
+  }
+}
+
+async function changeSize(photo,dir){
+  if(!session)return;
+  if(layoutColumnsMissing){
+    status("Run the photo-layout SQL in Supabase first (it adds size_scale, pos_x and pos_y).");
+    return;
+  }
+  if(busy){status("Please wait for the current task to finish.");return;}
+  const key=getPhotoKey(photo);
+  const current=sizeScale(photo);
+  let next;
+  if(dir===0){
+    if(photo.size_scale==null){status("This photo is already on automatic size.");return;}
+    next=null;
+  }else{
+    next=dir>0
+      ?SIZE_STEPS.find(s=>s>current+0.001)
+      :[...SIZE_STEPS].reverse().find(s=>s<current-0.001);
+    if(next===undefined){status(dir>0?"That's the largest size.":"That's the smallest size.");return;}
+  }
+
+  adoptComputedPositions();   /* make sure every photo has a saved spot before anything moves */
+  const spot=photoPositions.get(key);
+  if(!spot)return;
+  const oldBig=Math.max(cardWidth(photo),cardHeight(photo));
+
+  photo.size_scale=next;
+  dirtySize.add(key);
+  resolveOverlaps(key);                                       /* grew: push neighbours away */
+  if(sizeScale(photo)<current-0.001)                          /* shrank: let neighbours close the gap */
+    fillGaps(spot.x,spot.y,oldBig*1.6+250,key);
+
+  placeCards(true);
+  const card=world.querySelector(`.card[data-id="${CSS.escape(key)}"]`);
+  if(card)updateSizeLabel(card,photo);
+  lastLayoutSig=layoutSignature(photos);
+  scheduleFlush();
 }
 
 function refreshCardsInPlace(){
@@ -1420,7 +1747,7 @@ let photoChannel=null,photoReloadTimer=0,lastPhotoLoad=0;
 function schedulePhotoReload(){
   clearTimeout(photoReloadTimer);
   photoReloadTimer=setTimeout(()=>{
-    if(busy){schedulePhotoReload();return;}   /* wait until our own upload / delete is finished */
+    if(busy||layoutSavePending()){schedulePhotoReload();return;}   /* wait until our own upload / delete / layout save is finished */
     loadPhotos(true);
   },800);
 }
@@ -1434,7 +1761,9 @@ function subscribePhotos(){
       const photo=row&&photos.find(p=>String(p.id)===String(row.id));
       if(!photo)return;
       const moves=("width" in row&&row.width!==photo.width)||("height" in row&&row.height!==photo.height)||
-        ("sort_order" in row&&row.sort_order!==photo.sort_order);
+        ("sort_order" in row&&row.sort_order!==photo.sort_order)||
+        ("pos_x" in row&&row.pos_x!==photo.pos_x)||("pos_y" in row&&row.pos_y!==photo.pos_y)||
+        ("size_scale" in row&&row.size_scale!==photo.size_scale);
       Object.assign(photo,row);
       if(moves)schedulePhotoReload();
       else refreshCardsInPlace();
@@ -1443,7 +1772,7 @@ function subscribePhotos(){
 }
 /* Safety net in case live updates are not enabled: re-check when you come back to the tab */
 document.addEventListener("visibilitychange",()=>{
-  if(!document.hidden&&db&&!busy&&Date.now()-lastPhotoLoad>15000)loadPhotos(true);
+  if(!document.hidden&&db&&!busy&&!layoutSavePending()&&Date.now()-lastPhotoLoad>15000)loadPhotos(true);
 });
 
 /* Settings menu */
@@ -1838,8 +2167,15 @@ async function removePhoto(photo){
   try{
     const {error:rowError}=await db.from("photos").delete().eq("id",photo.id);
     if(rowError)throw rowError;
+    const oldSpot=photoPositions.get(getPhotoKey(photo));
     photos=photos.filter(item=>String(item.id)!==String(photo.id));
     photoDimensions.delete(getPhotoKey(photo));
+    if(oldSpot&&session&&!layoutColumnsMissing){
+      /* the neighbours slide in to close the hole the removed photo leaves */
+      adoptComputedPositions();
+      fillGaps(oldSpot.x,oldSpot.y,Math.max(cardWidth(photo),cardHeight(photo))*1.6+250,null);
+      scheduleFlush();
+    }
     await render(false);
 
     const paths=[photo.storage_path,photo.thumbnail_path].filter(Boolean);
@@ -1912,6 +2248,7 @@ let pointerStart=null,pinchState=null,movedDuringGesture=false,suppressClickUnti
 
 stage.addEventListener("pointerdown",event=>{
   if(event.button!==undefined&&event.button!==0)return;
+  if(!event.target.closest(".card-panel,.card-menu-btn"))closeCardMenus();
   if(event.target.closest("button,input,a,select,textarea"))return;
   stage.setPointerCapture(event.pointerId);
   beginGesture();
@@ -2018,11 +2355,15 @@ world.addEventListener("click",event=>{
     event.stopPropagation();
     const photo=photos.find(p=>String(p.id)===card.dataset.id);
     if(!photo)return;
-    if(button.dataset.action==="view")openViewer(photo);
-    if(button.dataset.action==="date")editDate(photo);
-    if(button.dataset.action==="delete")removePhoto(photo);
+    if(button.dataset.action==="menu"){toggleCardMenu(card);return;}
+    if(button.dataset.action==="view"){closeCardMenus();openViewer(photo);}
+    if(button.dataset.action==="date"){closeCardMenus();editDate(photo);}
+    if(button.dataset.action==="delete"){closeCardMenus();removePhoto(photo);}
     if(button.dataset.action==="like")likePhoto(photo,card);
     if(button.dataset.action==="resetlikes")resetLikes(photo,card);
+    if(button.dataset.action==="bigger")changeSize(photo,1);
+    if(button.dataset.action==="smaller")changeSize(photo,-1);
+    if(button.dataset.action==="sizereset")changeSize(photo,0);
     return;
   }
 
@@ -2057,7 +2398,7 @@ window.addEventListener("resize",()=>{
 
 document.addEventListener("keydown",event=>{
   if(event.key==="Escape"){
-    closeSettingsMenu();closeViewer();$("modal").classList.remove("open");
+    closeSettingsMenu();closeCardMenus();closeViewer();$("modal").classList.remove("open");
     if(drawMode)setDrawMode(false);
   }
 });
