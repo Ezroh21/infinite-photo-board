@@ -222,6 +222,35 @@ header>* { pointer-events:auto; }
   100% { transform:scale(1); }
 }
 
+/* Free drawing layer (sits above the photos, never blocks clicks itself) */
+#drawCanvas {
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:5;pointer-events:none;
+}
+/* While drawing, photo cards ignore the pointer so strokes can start anywhere, even on a photo */
+body.drawing #stage { cursor:crosshair; }
+body.drawing .card { pointer-events:none; }
+#drawToolbar {
+  position:fixed;z-index:13;left:50%;bottom:56px;transform:translateX(-50%);
+  display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;
+  max-width:calc(100vw - 16px);padding:8px 12px;
+  background:#102849f2;border:1px solid #9ddcff55;border-radius:18px;
+  box-shadow:0 6px 24px #0005;
+}
+#drawToolbar .swatches { display:flex;gap:6px;align-items:center; }
+#drawToolbar .swatch {
+  width:26px;height:26px;padding:0;border-radius:50%;
+  border:2px solid #ffffff88;box-shadow:none;
+}
+#drawToolbar .swatch:hover { transform:scale(1.12);box-shadow:none; }
+#drawToolbar .swatch.active { border-color:#fff;outline:2px solid #8dd8f7;transform:scale(1.15); }
+#drawToolbar label {
+  display:flex;align-items:center;gap:6px;font-size:11px;color:#c9e6fa;
+}
+#brushSize { width:90px;accent-color:#8dd8f7; }
+#drawToolbar .tool-btn { padding:6px 11px;font-size:12px;box-shadow:none; }
+#drawToolbar .tool-btn:hover { box-shadow:none; }
+
 #empty {
   position:fixed;inset:0;z-index:2;display:flex;align-items:center;
   justify-content:center;padding:145px 22px 50px;text-align:center;pointer-events:none;
@@ -324,6 +353,8 @@ header>* { pointer-events:auto; }
     font-size:10px;line-height:1.3;text-align:right;
   }
   #viewerHint { max-width:90vw;white-space:normal;line-height:1.4; }
+  #drawToolbar { bottom:50px;padding:7px 9px;gap:6px; }
+  #brushSize { width:70px; }
 }
 /* Touch devices: backdrop blur is very costly while the wall moves, and these panels are almost opaque anyway */
 @media (pointer:coarse),(max-width:600px) {
@@ -348,6 +379,8 @@ header>* { pointer-events:auto; }
     <p>a tiny place for our favorite memories</p>
   </div>
   <div class="actions">
+    <button id="drawBtn" type="button">✏️ Draw</button>
+    <button id="clearDrawBtn" type="button" class="danger">🧽 Clear drawings</button>
     <button id="loginBtn">☁️ Owner login</button>
     <button id="uploadBtn" class="primary hidden">＋ Add photos</button>
     <button id="titleBtn" class="hidden">✎ Wall title</button>
@@ -376,6 +409,23 @@ header>* { pointer-events:auto; }
 </div>
 
 <div id="stage" aria-label="Photo wall canvas"><div id="world"></div></div>
+<canvas id="drawCanvas" aria-hidden="true"></canvas>
+
+<div id="drawToolbar" class="hidden" role="toolbar" aria-label="Drawing tools">
+  <div class="swatches" id="swatches">
+    <button type="button" class="swatch active" data-color="#ff7eb6" style="background:#ff7eb6" aria-label="Pink"></button>
+    <button type="button" class="swatch" data-color="#ffffff" style="background:#ffffff" aria-label="White"></button>
+    <button type="button" class="swatch" data-color="#7dd3fc" style="background:#7dd3fc" aria-label="Sky blue"></button>
+    <button type="button" class="swatch" data-color="#fde047" style="background:#fde047" aria-label="Yellow"></button>
+    <button type="button" class="swatch" data-color="#86efac" style="background:#86efac" aria-label="Mint"></button>
+    <button type="button" class="swatch" data-color="#c4b5fd" style="background:#c4b5fd" aria-label="Purple"></button>
+    <button type="button" class="swatch" data-color="#fb923c" style="background:#fb923c" aria-label="Orange"></button>
+  </div>
+  <label>Size <input id="brushSize" type="range" min="2" max="30" value="5"></label>
+  <button id="undoDrawBtn" type="button" class="tool-btn">↶ Undo</button>
+  <button id="clearDrawBtn2" type="button" class="tool-btn danger">🧽 Clear all</button>
+  <button id="doneDrawBtn" type="button" class="tool-btn primary">✔ Done</button>
+</div>
 
 <div class="sky-decoration sky-cloud" style="left:4%;top:22%">☁️</div>
 <div class="sky-decoration sky-cloud" style="right:4%;bottom:13%">☁️</div>
@@ -765,6 +815,7 @@ function applyTransform() {
   /* Zoomed-out level of detail, with hysteresis so it doesn't flicker at the threshold */
   const far=isFar?scale<.58:scale<.5;
   if(far!==isFar){isFar=far;world.classList.toggle("far",far);}
+  renderDrawings();   /* keep the drawing layer locked to the wall */
 }
 /* will-change only while the wall is moving; releasing it afterwards lets the browser
    re-rasterize at the settled zoom (sharper, and far lighter on memory when zoomed out). */
@@ -782,6 +833,163 @@ function scheduleTransform() {
     applyTransform();
   });
 }
+
+/* ───────────── Free drawing ─────────────
+ * Strokes are stored in wall (world) coordinates, so they pan and zoom together with the photos.
+ * They are saved in this browser's localStorage and stay until you press "Clear drawings".
+ */
+const DRAW_KEY="photoWallDrawings";
+const drawCanvas=$("drawCanvas"),dctx=drawCanvas.getContext("2d");
+const strokeBoxes=new WeakMap();
+let strokes=[],drawMode=false,currentStroke=null;
+let drawColor="#ff7eb6",brushSize=5,drawDpr=1,drawFrame=0;
+
+function loadDrawings(){
+  try{
+    const raw=localStorage.getItem(DRAW_KEY);
+    const parsed=raw?JSON.parse(raw):[];
+    strokes=Array.isArray(parsed)
+      ?parsed.filter(s=>s&&typeof s.c==="string"&&Number(s.w)>0&&Array.isArray(s.p)&&s.p.length)
+      :[];
+  }catch(error){strokes=[];}
+}
+function saveDrawings(){
+  try{localStorage.setItem(DRAW_KEY,JSON.stringify(strokes));return true;}
+  catch(error){status("Couldn't save the drawing (browser storage may be full).");return false;}
+}
+function strokeBox(s){
+  let box=strokeBoxes.get(s);
+  if(box)return box;
+  let l=Infinity,t=Infinity,r=-Infinity,b=-Infinity;
+  for(const p of s.p){
+    if(p[0]<l)l=p[0];if(p[0]>r)r=p[0];
+    if(p[1]<t)t=p[1];if(p[1]>b)b=p[1];
+  }
+  box={l,t,r,b};
+  strokeBoxes.set(s,box);
+  return box;
+}
+function resizeDrawCanvas(){
+  drawDpr=Math.min(window.devicePixelRatio||1,2);
+  drawCanvas.width=Math.round(window.innerWidth*drawDpr);
+  drawCanvas.height=Math.round(window.innerHeight*drawDpr);
+  renderDrawings();
+}
+function paintStroke(s){
+  const p=s.p;
+  dctx.strokeStyle=s.c;dctx.fillStyle=s.c;
+  dctx.lineWidth=s.w;dctx.lineCap="round";dctx.lineJoin="round";
+  if(p.length===1){
+    dctx.beginPath();dctx.arc(p[0][0],p[0][1],s.w/2,0,Math.PI*2);dctx.fill();
+    return;
+  }
+  dctx.beginPath();
+  dctx.moveTo(p[0][0],p[0][1]);
+  for(let i=1;i<p.length-1;i++){
+    const mx=(p[i][0]+p[i+1][0])/2,my=(p[i][1]+p[i+1][1])/2;
+    dctx.quadraticCurveTo(p[i][0],p[i][1],mx,my);
+  }
+  const last=p[p.length-1];
+  dctx.lineTo(last[0],last[1]);
+  dctx.stroke();
+}
+function renderDrawings(){
+  dctx.setTransform(1,0,0,1,0,0);
+  dctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  if(!strokes.length&&!currentStroke)return;
+  dctx.setTransform(drawDpr*scale,0,0,drawDpr*scale,drawDpr*tx,drawDpr*ty);
+  /* Only paint strokes that are on screen */
+  const left=-tx/scale,top=-ty/scale;
+  const right=(window.innerWidth-tx)/scale,bottom=(window.innerHeight-ty)/scale;
+  for(const s of strokes){
+    const box=strokeBox(s);
+    if(box.r+s.w<left||box.l-s.w>right||box.b+s.w<top||box.t-s.w>bottom)continue;
+    paintStroke(s);
+  }
+  if(currentStroke)paintStroke(currentStroke);
+}
+function requestDrawRender(){
+  if(drawFrame)return;
+  drawFrame=requestAnimationFrame(()=>{drawFrame=0;renderDrawings();});
+}
+function toWorld(event){
+  return [(event.clientX-tx)/scale,(event.clientY-ty)/scale];
+}
+function startStroke(event){
+  /* Width is kept in wall units, so the line looks like "brush size" pixels at the current zoom */
+  currentStroke={c:drawColor,w:brushSize/scale,p:[toWorld(event)]};
+  requestDrawRender();
+}
+function extendStroke(event){
+  if(!currentStroke)return;
+  const point=toWorld(event),last=currentStroke.p[currentStroke.p.length-1];
+  if(Math.hypot((point[0]-last[0])*scale,(point[1]-last[1])*scale)<1.5)return;
+  currentStroke.p.push(point);
+  requestDrawRender();
+}
+function finishStroke(){
+  if(!currentStroke)return;
+  const s=currentStroke;
+  currentStroke=null;
+  s.p=s.p.map(p=>[Math.round(p[0]*10)/10,Math.round(p[1]*10)/10]);
+  s.w=Math.round(s.w*100)/100;
+  strokes.push(s);
+  saveDrawings();
+  updateDrawButtons();
+  requestDrawRender();
+}
+function cancelStroke(){
+  currentStroke=null;
+  requestDrawRender();
+}
+function undoStroke(){
+  if(!strokes.length){status("Nothing to undo.");return;}
+  strokes.pop();
+  saveDrawings();
+  updateDrawButtons();
+  renderDrawings();
+}
+function clearDrawings(){
+  if(!strokes.length){status("There are no drawings to clear.");return;}
+  if(!confirm("Delete ALL drawings from the wall?\n\nThis cannot be undone."))return;
+  strokes=[];
+  currentStroke=null;
+  saveDrawings();
+  updateDrawButtons();
+  renderDrawings();
+  status("All drawings cleared ☁️");
+}
+function updateDrawButtons(){
+  $("undoDrawBtn").disabled=!strokes.length;
+  $("clearDrawBtn").disabled=!strokes.length;
+  $("clearDrawBtn2").disabled=!strokes.length;
+}
+function setDrawMode(on){
+  drawMode=!!on;
+  if(!drawMode)cancelStroke();
+  document.body.classList.toggle("drawing",drawMode);
+  $("drawToolbar").classList.toggle("hidden",!drawMode);
+  $("drawBtn").classList.toggle("primary",drawMode);
+  $("drawBtn").textContent=drawMode?"✔ Done drawing":"✏️ Draw";
+  closeSettingsMenu();
+  status(drawMode
+    ?"Draw mode on ✏️ Draw anywhere · two fingers / scroll to move and zoom"
+    :"Drawing saved. Tap ✏️ Draw to add more 💗");
+}
+
+$("drawBtn").onclick=()=>setDrawMode(!drawMode);
+$("doneDrawBtn").onclick=()=>setDrawMode(false);
+$("undoDrawBtn").onclick=undoStroke;
+$("clearDrawBtn").onclick=clearDrawings;
+$("clearDrawBtn2").onclick=clearDrawings;
+$("brushSize").addEventListener("input",event=>{brushSize=Number(event.target.value)||5;});
+$("swatches").addEventListener("click",event=>{
+  const swatch=event.target.closest(".swatch");
+  if(!swatch)return;
+  drawColor=swatch.dataset.color;
+  $("swatches").querySelectorAll(".swatch").forEach(el=>el.classList.toggle("active",el===swatch));
+});
+window.addEventListener("resize",resizeDrawCanvas);
 
 /* Authentication UI */
 function closeSettingsMenu() {
@@ -1357,7 +1565,7 @@ $("logoutBtn2").onclick=()=>{closeSettingsMenu();$("logoutBtn").click();};
 const savedTitle=localStorage.getItem("photoWallTitle");
 if(savedTitle)$("wallTitle").textContent=savedTitle;
 
-/* Pan and pinch zoom */
+/* Pan and pinch zoom (and, in draw mode, one-finger drawing) */
 const activePointers=new Map();
 let pointerStart=null,pinchState=null,movedDuringGesture=false,suppressClickUntil=0;
 
@@ -1370,8 +1578,12 @@ stage.addEventListener("pointerdown",event=>{
 
   if(activePointers.size===1){
     pointerStart={x:event.clientX,y:event.clientY,tx,ty};
-    pinchState=null;movedDuringGesture=false;stage.classList.add("dragging");
+    pinchState=null;movedDuringGesture=false;
+    if(drawMode)startStroke(event);
+    else stage.classList.add("dragging");
   }else if(activePointers.size===2){
+    /* A second finger means "move/zoom the wall", not "draw": drop the half-drawn stroke */
+    if(currentStroke)cancelStroke();
     const points=[...activePointers.values()];
     pointerStart=null;
     pinchState={
@@ -1403,6 +1615,13 @@ stage.addEventListener("pointermove",event=>{
     return;
   }
 
+  if(currentStroke){
+    const batch=event.getCoalescedEvents?event.getCoalescedEvents():[];
+    if(batch.length)batch.forEach(extendStroke);else extendStroke(event);
+    movedDuringGesture=true;
+    return;
+  }
+
   if(pointerStart){
     const dx=event.clientX-pointerStart.x,dy=event.clientY-pointerStart.y;
     if(Math.hypot(dx,dy)>5)movedDuringGesture=true;
@@ -1413,6 +1632,7 @@ function endPointer(event){
   if(!activePointers.has(event.pointerId))return;
   const dragged=movedDuringGesture;
   activePointers.delete(event.pointerId);
+  if(currentStroke)finishStroke();
   if(dragged)suppressClickUntil=Date.now()+300;
   pinchState=null;
   if(activePointers.size===1){
@@ -1430,6 +1650,7 @@ stage.addEventListener("pointercancel",endPointer);
 
 /* Delegated click handling avoids one click listener per card. */
 world.addEventListener("click",event=>{
+  if(drawMode)return;
   const button=event.target.closest("button[data-action]");
   const card=event.target.closest(".card");
   if(!card)return;
@@ -1478,6 +1699,7 @@ window.addEventListener("resize",()=>{
 document.addEventListener("keydown",event=>{
   if(event.key==="Escape"){
     closeSettingsMenu();closeViewer();$("modal").classList.remove("open");
+    if(drawMode)setDrawMode(false);
   }
 });
 
@@ -1635,7 +1857,7 @@ document.addEventListener("keydown",event=>{
   window.addEventListener("pointercancel",leave);
   document.documentElement.addEventListener("mouseleave",leave);
   window.addEventListener("pointerdown",e=>{
-    if(reduce||e.target.closest("button,input,a,select,textarea"))return;
+    if(reduce||drawMode||e.target.closest("button,input,a,select,textarea"))return;
     for(let i=0;i<12;i++){
       const angle=Math.random()*TAU,speed=40+Math.random()*120;
       bursts.push({
@@ -1653,6 +1875,9 @@ document.addEventListener("keydown",event=>{
 
 /* Startup */
 async function init(){
+  loadDrawings();
+  updateDrawButtons();
+  resizeDrawCanvas();
   applyTransform();
   updateCapacityBar();
   db=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
