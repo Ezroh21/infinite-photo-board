@@ -450,6 +450,7 @@ body.drawing .card { pointer-events:none; }
   <div class="tool-group" role="group" aria-label="Tool">
     <button id="penBtn" type="button" class="tool-tab active" aria-pressed="true">✏️ Pen</button>
     <button id="eraserBtn" type="button" class="tool-tab" aria-pressed="false">⌫ Eraser</button>
+    <button id="selectBtn" type="button" class="tool-tab" aria-pressed="false">✥ Edit</button>
   </div>
   <div class="swatches" id="swatches">
     <button type="button" class="swatch active" data-color="#ff7eb6" style="background:#ff7eb6" aria-label="Pink"></button>
@@ -1422,6 +1423,7 @@ function renderDrawings(){
   dctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
   paintStrokes();
   paintEraserRing();
+  paintSelection();
 }
 function paintEraserRing(){
   if(!drawMode||drawTool!=="eraser"||!eraserPos)return;
@@ -1579,6 +1581,182 @@ async function finishErase(){
     loadDrawings(true);   /* resync with what is really saved */
   }
 }
+
+/* ───── Edit tool: drag a box to select your drawings, then move or resize them ───── */
+let selection=[],selGesture=null;
+const HANDLES=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+
+function clearSelection(){selection=[];selGesture=null;requestDrawRender();}
+function selectionBounds(list){
+  let l=Infinity,t=Infinity,r=-Infinity,b=-Infinity;
+  for(const s of list){
+    const box=strokeBox(s),h=s.w/2;
+    if(box.l-h<l)l=box.l-h;if(box.t-h<t)t=box.t-h;
+    if(box.r+h>r)r=box.r+h;if(box.b+h>b)b=box.b+h;
+  }
+  return {l,t,r,b};
+}
+function handlePoint(b,hx,hy){
+  return [tx+(hx<0?b.l:hx>0?b.r:(b.l+b.r)/2)*scale,ty+(hy<0?b.t:hy>0?b.b:(b.t+b.b)/2)*scale];
+}
+function handleAt(event,b){
+  for(const [hx,hy] of HANDLES){
+    const p=handlePoint(b,hx,hy);
+    if(Math.hypot(event.clientX-p[0],event.clientY-p[1])<=18)return {hx,hy};
+  }
+  return null;
+}
+function segHitsRect(a,b,r){
+  let t0=0,t1=1;const dx=b[0]-a[0],dy=b[1]-a[1];
+  for(const [p,q] of [[-dx,a[0]-r.l],[dx,r.r-a[0]],[-dy,a[1]-r.t],[dy,r.b-a[1]]]){
+    if(p===0){if(q<0)return false;}
+    else{const u=q/p;if(p<0){if(u>t1)return false;if(u>t0)t0=u;}else{if(u<t0)return false;if(u<t1)t1=u;}}
+  }
+  return true;
+}
+function strokeInRect(s,r){
+  if(s.p.length===1)return s.p[0][0]>=r.l&&s.p[0][0]<=r.r&&s.p[0][1]>=r.t&&s.p[0][1]<=r.b;
+  for(let i=1;i<s.p.length;i++)if(segHitsRect(s.p[i-1],s.p[i],r))return true;
+  return false;
+}
+function strokeHit(s,pt,tol){
+  const lim=tol+s.w/2;
+  if(s.p.length===1)return Math.hypot(pt[0]-s.p[0][0],pt[1]-s.p[0][1])<=lim;
+  for(let i=1;i<s.p.length;i++)if(distToSeg(pt,s.p[i-1],s.p[i])<=lim)return true;
+  return false;
+}
+function startSelectGesture(event){
+  if(!myId())return;
+  if(selection.some(s=>s.pending)){status("Still saving… try again in a moment.");return;}
+  selection=selection.filter(s=>strokes.includes(s));
+  if(selection.length){
+    const b=selectionBounds(selection),w=toWorld(event);
+    const h=handleAt(event,b);
+    const inside=w[0]>=b.l&&w[0]<=b.r&&w[1]>=b.t&&w[1]<=b.b;
+    if(h||inside){
+      selGesture={type:h?"scale":"move",h,b,x0:event.clientX,y0:event.clientY,moved:false,
+        orig:selection.map(s=>({s,p:s.p.map(q=>[q[0],q[1]]),w:s.w}))};
+      return;
+    }
+  }
+  selGesture={type:"box",x0:event.clientX,y0:event.clientY,x1:event.clientX,y1:event.clientY};
+  requestDrawRender();
+}
+function selectMove(event){
+  const g=selGesture;
+  if(!g)return;
+  if(g.type==="box"){g.x1=event.clientX;g.y1=event.clientY;requestDrawRender();return;}
+  const dxs=event.clientX-g.x0,dys=event.clientY-g.y0;
+  if(!g.moved&&Math.hypot(dxs,dys)<3)return;
+  g.moved=true;
+  const dx=dxs/scale,dy=dys/scale,b=g.b;
+  let fn,wf=1;
+  if(g.type==="move"){
+    fn=(x,y)=>[x+dx,y+dy];
+  }else{
+    const {hx,hy}=g.h;
+    const hxw=hx<0?b.l:hx>0?b.r:(b.l+b.r)/2,hyw=hy<0?b.t:hy>0?b.b:(b.t+b.b)/2;
+    const ax=hx<0?b.r:hx>0?b.l:hxw,ay=hy<0?b.b:hy>0?b.t:hyw;
+    const clampS=v=>Math.max(.05,Math.min(40,v));
+    let sx=hx&&Math.abs(hxw-ax)>1?clampS((hxw+dx-ax)/(hxw-ax)):1;
+    let sy=hy&&Math.abs(hyw-ay)>1?clampS((hyw+dy-ay)/(hyw-ay)):1;
+    if(hx&&hy){sx=sy=(sx+sy)/2;}        /* corners keep the proportions, edges stretch one way */
+    wf=hx&&hy?sx:1;                      /* line thickness follows corner resizing */
+    fn=(x,y)=>[ax+(x-ax)*sx,ay+(y-ay)*sy];
+  }
+  for(const o of g.orig){
+    o.s.p=o.p.map(q=>fn(q[0],q[1]));
+    o.s.w=o.w*wf;
+    strokeBoxes.delete(o.s);
+  }
+  requestDrawRender();
+}
+function cancelSelectGesture(){
+  const g=selGesture;
+  selGesture=null;
+  if(g&&g.orig&&g.moved){
+    for(const o of g.orig){o.s.p=o.p;o.s.w=o.w;strokeBoxes.delete(o.s);}
+  }
+  requestDrawRender();
+}
+function finishSelectGesture(){
+  const g=selGesture;
+  selGesture=null;
+  if(!g)return;
+  if(g.type==="box"){
+    const me=myId(),mine=strokes.filter(s=>s.owner===me&&!s.pending);
+    let picked;
+    if(Math.hypot(g.x1-g.x0,g.y1-g.y0)<5){   /* a tap: pick the line under the finger */
+      const pt=[(g.x0-tx)/scale,(g.y0-ty)/scale],tol=10/scale;
+      const hit=[...mine].reverse().find(s=>strokeHit(s,pt,tol));
+      picked=hit?[hit]:[];
+    }else{
+      const r={l:(Math.min(g.x0,g.x1)-tx)/scale,t:(Math.min(g.y0,g.y1)-ty)/scale,
+               r:(Math.max(g.x0,g.x1)-tx)/scale,b:(Math.max(g.y0,g.y1)-ty)/scale};
+      picked=mine.filter(s=>strokeInRect(s,r));
+    }
+    selection=picked;
+    status(picked.length
+      ?`${picked.length} drawing${picked.length>1?"s":""} selected · drag to move, drag a handle to resize`
+      :"Nothing selected: drag a box over your own drawings.");
+    requestDrawRender();
+    return;
+  }
+  if(g.moved)commitEdit(g.orig.map(o=>o.s));
+}
+async function commitEdit(list){
+  const oldIds=list.map(s=>s.id).filter(Boolean);
+  list.forEach(s=>{
+    s.p=s.p.map(q=>[Math.round(q[0]*10)/10,Math.round(q[1]*10)/10]);
+    s.w=Math.round(s.w*100)/100;
+    strokeBoxes.delete(s);
+    s.pending=true;
+  });
+  requestDrawRender();
+  try{
+    const {data,error}=await db.from(DRAW_TABLE)
+      .insert(list.map(s=>({color:s.c,width:s.w,points:s.p}))).select("id");
+    if(error)throw error;
+    list.forEach((s,i)=>{s.id=data[i].id;delete s.pending;});
+    const ids=new Set(list.map(s=>s.id));
+    strokes=strokes.filter(s=>list.includes(s)||!ids.has(s.id));   /* drop live-update duplicates */
+    if(oldIds.length){
+      const {error:delError}=await db.from(DRAW_TABLE).delete().in("id",oldIds);
+      if(delError)throw delError;
+    }
+    updateDrawButtons();
+    status("Drawing updated 💗");
+  }catch(error){
+    console.error("Edit failed:",error);
+    status("Couldn't save the edit: "+(error.message||String(error)));
+    strokes=strokes.filter(s=>!list.includes(s));
+    selection=[];
+    loadDrawings(true);   /* show what is really saved */
+  }
+}
+function paintSelection(){
+  if(!drawMode||drawTool!=="select")return;
+  dctx.setTransform(drawDpr,0,0,drawDpr,0,0);
+  dctx.lineWidth=1.5;
+  if(selGesture&&selGesture.type==="box"){
+    const g=selGesture,x=Math.min(g.x0,g.x1),y=Math.min(g.y0,g.y1);
+    const w=Math.abs(g.x1-g.x0),h=Math.abs(g.y1-g.y0);
+    dctx.fillStyle="rgba(125,211,252,.12)";dctx.strokeStyle="#7dd3fc";
+    dctx.setLineDash([5,4]);dctx.fillRect(x,y,w,h);dctx.strokeRect(x,y,w,h);dctx.setLineDash([]);
+  }
+  selection=selection.filter(s=>strokes.includes(s));
+  if(!selection.length)return;
+  const b=selectionBounds(selection);
+  const tl=handlePoint(b,-1,-1),br=handlePoint(b,1,1);
+  dctx.strokeStyle="#7dd3fc";dctx.setLineDash([6,4]);
+  dctx.strokeRect(tl[0],tl[1],br[0]-tl[0],br[1]-tl[1]);dctx.setLineDash([]);
+  dctx.fillStyle="#fff";dctx.strokeStyle="#38bdf8";
+  for(const [hx,hy] of HANDLES){
+    const p=handlePoint(b,hx,hy);
+    dctx.beginPath();dctx.rect(p[0]-6,p[1]-6,12,12);dctx.fill();dctx.stroke();
+  }
+}
+
 async function undoStroke(){
   const me=myId();
   let index=-1;
@@ -1621,7 +1799,7 @@ function setDrawMode(on){
     return;
   }
   drawMode=!!on;
-  if(!drawMode){cancelStroke();if(erasing)finishErase();eraserPos=null;}
+  if(!drawMode){cancelStroke();if(erasing)finishErase();eraserPos=null;clearSelection();}
   document.body.classList.toggle("drawing",drawMode);
   $("drawToolbar").classList.toggle("hidden",!drawMode);
   $("drawBtn").classList.toggle("primary",drawMode);
@@ -1646,21 +1824,26 @@ function updateSizePreview(){
   $("sizePreview").classList.toggle("eraser",eraser);
 }
 function setDrawTool(tool){
+  if(drawTool==="select"&&tool!=="select")clearSelection();
   drawTool=tool;
-  const eraser=tool==="eraser";
-  $("penBtn").classList.toggle("active",!eraser);
+  const eraser=tool==="eraser",pick=tool==="select";
+  $("penBtn").classList.toggle("active",tool==="pen");
   $("eraserBtn").classList.toggle("active",eraser);
-  $("penBtn").setAttribute("aria-pressed",String(!eraser));
+  $("selectBtn").classList.toggle("active",pick);
+  $("penBtn").setAttribute("aria-pressed",String(tool==="pen"));
   $("eraserBtn").setAttribute("aria-pressed",String(eraser));
-  $("swatches").classList.toggle("dim",eraser);
+  $("selectBtn").setAttribute("aria-pressed",String(pick));
+  $("swatches").classList.toggle("dim",tool!=="pen");
   $("sizeLabel").textContent=eraser?"Eraser":"Size";
   $("brushSize").value=eraser?eraserSize:brushSize;
   updateSizePreview();
   if(eraser)status("Eraser rubs out parts of your own lines 🧽");
+  else if(pick){status("Edit: drag a box around your drawings, then move or resize them ✥");requestDrawRender();}
   else{eraserPos=null;requestDrawRender();}
 }
 $("penBtn").onclick=()=>setDrawTool("pen");
 $("eraserBtn").onclick=()=>setDrawTool("eraser");
+$("selectBtn").onclick=()=>setDrawTool("select");
 $("brushSize").addEventListener("input",event=>{
   const value=Number(event.target.value)||5;
   if(drawTool==="eraser")eraserSize=value;else brushSize=value;
@@ -2337,12 +2520,14 @@ stage.addEventListener("pointerdown",event=>{
     pointerStart={x:event.clientX,y:event.clientY,tx,ty};
     pinchState=null;movedDuringGesture=false;
     if(drawMode&&drawTool==="eraser")startErase(event);
+    else if(drawMode&&drawTool==="select")startSelectGesture(event);
     else if(drawMode)startStroke(event);
     else stage.classList.add("dragging");
   }else if(activePointers.size===2){
     /* A second finger means "move/zoom the wall", not "draw": drop the half-drawn stroke */
     if(currentStroke)cancelStroke();
     if(erasing)finishErase();
+    if(selGesture)cancelSelectGesture();
     const points=[...activePointers.values()];
     pointerStart=null;
     pinchState={
@@ -2385,6 +2570,8 @@ stage.addEventListener("pointermove",event=>{
     return;
   }
 
+  if(selGesture){selectMove(event);movedDuringGesture=true;return;}
+
   if(currentStroke){
     const batch=event.getCoalescedEvents?event.getCoalescedEvents():[];
     if(batch.length)batch.forEach(extendStroke);else extendStroke(event);
@@ -2404,6 +2591,7 @@ function endPointer(event){
   activePointers.delete(event.pointerId);
   if(currentStroke)finishStroke();
   if(erasing)finishErase();
+  if(selGesture)finishSelectGesture();
   if(event.pointerType==="touch"&&eraserPos){eraserPos=null;requestDrawRender();}
   if(dragged)suppressClickUntil=Date.now()+300;
   pinchState=null;
